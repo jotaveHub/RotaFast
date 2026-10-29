@@ -1,0 +1,19 @@
+{
+  "name": "back-end",
+  "version": "1.0.0",
+  "description": "API REST com PostGIS e otimização de rotas para o RotaFast",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "postgis",
+    "sequelize",
+    "express",
+    "rotas"
+  ],
+  "author": "",
+  "license": "MIT"
+}
