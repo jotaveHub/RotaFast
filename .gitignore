@@ -1,0 +1,33 @@
+# Dependências
+node_modules/
+back-end/node_modules/
+front-end/node_modules/
+
+# Variáveis de ambiente e credenciais
+.env
+.env.*
+!.env.example
+back-end/.env
+back-end/.env.*
+!back-end/.env.example
+
+# Documentação interna, especificações e enunciados
+docs/
+*.pdf
+especificacao*.md
+planejamento*.md
+arquitetura*.md
+
+# Logs e arquivos temporários
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
