@@ -11,11 +11,14 @@ back-end/.env
 back-end/.env.*
 !back-end/.env.example
 
-# Documentação interna, especificações e enunciados
+# Documentação interna, especificações, testes locais e enunciados
 docs
 /docs/
 docs/
 docs/**
+tests/
+back-end/tests/
+*.test.js
 *.pdf
 especificacao*.md
 planejamento*.md
