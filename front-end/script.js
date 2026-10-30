@@ -156,5 +156,93 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
   });
 });
 
+// 4. Geocodificação de Endereços (Nominatim via Back-end)
+const inputBusca = document.getElementById("localBuscar");
+const btnBuscar = document.getElementById("btnBuscar");
+const listaResultadosBusca = document.getElementById("resultadosBusca");
+
+async function buscarEndereco() {
+  const termo = inputBusca?.value?.trim();
+  if (!termo) {
+    mostrarToast("Digite um endereço ou localidade para buscar.");
+    return;
+  }
+
+  try {
+    btnBuscar.textContent = "Buscando...";
+    let dados = [];
+
+    try {
+      const resp = await fetch(
+        `${API_BASE}/geocodificacao?q=${encodeURIComponent(termo)}`
+      );
+      if (resp.ok) {
+        dados = await resp.json();
+      }
+    } catch {
+      const respDireta = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+          termo
+        )}&format=json&limit=5`
+      );
+      dados = await respDireta.json();
+    }
+
+    if (!Array.isArray(dados) || dados.length === 0) {
+      listaResultadosBusca.classList.add("hidden");
+      mostrarToast("Nenhum local encontrado para essa busca.");
+      return;
+    }
+
+    listaResultadosBusca.innerHTML = "";
+    dados.forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = item.display_name;
+      li.addEventListener("click", () => {
+        const lat = parseFloat(item.lat);
+        const lon = parseFloat(item.lon);
+        map.setView([lat, lon], 16);
+        markerCursor.setLatLng([lat, lon]);
+        atualizarTextoCoordenadaCursor();
+
+        const campoEnd = document.getElementById("campoEndereco");
+        if (campoEnd && !campoEnd.value) {
+          campoEnd.value = item.display_name.split(",").slice(0, 3).join(",");
+        }
+        listaResultadosBusca.classList.add("hidden");
+      });
+      listaResultadosBusca.appendChild(li);
+    });
+
+    listaResultadosBusca.classList.remove("hidden");
+
+    // Move imediatamente para o primeiro resultado mais relevante
+    const primeiro = dados[0];
+    const lat0 = parseFloat(primeiro.lat);
+    const lon0 = parseFloat(primeiro.lon);
+    map.setView([lat0, lon0], 15);
+    markerCursor.setLatLng([lat0, lon0]);
+    atualizarTextoCoordenadaCursor();
+  } catch {
+    mostrarToast("Erro ao consultar serviço de geocodificação.");
+  } finally {
+    btnBuscar.textContent = "Buscar";
+  }
+}
+
+btnBuscar?.addEventListener("click", buscarEndereco);
+inputBusca?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarEndereco();
+  }
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".search-wrapper")) {
+    listaResultadosBusca?.classList.add("hidden");
+  }
+});
+
 localizarUsuario();
 
