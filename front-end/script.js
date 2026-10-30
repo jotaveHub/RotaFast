@@ -848,6 +848,119 @@ document.getElementById("btnLimparRota")?.addEventListener("click", () => {
   mostrarToast("Camadas de rota limpas do mapa.");
 });
 
+// 11. Persistência e Histórico de Rotas Planejadas no PostGIS
+let rotasSalvasCache = [];
+
+async function carregarRotasSalvas() {
+  const container = document.getElementById("listaRotasSalvas");
+  if (!container) return;
+
+  try {
+    const resp = await fetch(`${API_BASE}/rotas`);
+    if (!resp.ok) return;
+    rotasSalvasCache = await resp.json();
+
+    container.innerHTML = "";
+    if (!Array.isArray(rotasSalvasCache) || rotasSalvasCache.length === 0) {
+      container.innerHTML = `<p style="font-size: 0.76rem; color: var(--text-muted);">Nenhuma rota salva ainda.</p>`;
+      return;
+    }
+
+    rotasSalvasCache.forEach((rota) => {
+      const distKm = ((rota.distancia_metros || 0) / 1000).toFixed(2).replace(".", ",");
+      const durMin = Math.max(1, Math.round((rota.duracao_segundos || 0) / 60));
+      const qtdParadas = Array.isArray(rota.paradas) ? rota.paradas.length : 0;
+
+      const card = document.createElement("div");
+      card.className = "point-item";
+      card.innerHTML = `
+        <div class="point-info">
+          <h5>${rota.nome}</h5>
+          <p>${qtdParadas} paradas • ${distKm} km • ~${durMin} min</p>
+        </div>
+        <div class="point-actions">
+          <button type="button" title="Desenhar no mapa" onclick="window.visualizarRotaSalva('${rota.id}')">🗺️</button>
+          <button type="button" title="Excluir rota" onclick="window.excluirRotaSalva('${rota.id}')">🗑️</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  } catch {
+    // Silencioso caso o servidor esteja reiniciando
+  }
+}
+
+window.visualizarRotaSalva = (id) => {
+  const rota = rotasSalvasCache.find((r) => r.id === id);
+  if (!rota) return;
+  ultimaRotaCalculada = rota;
+  renderizarRotaOtimizadaNoMapa(rota);
+  mostrarToast(`Exibindo rota salva: ${rota.nome}`);
+};
+
+window.excluirRotaSalva = async (id) => {
+  try {
+    const resp = await fetch(`${API_BASE}/rotas/${id}`, {
+      method: "DELETE",
+    });
+    if (!resp.ok) {
+      mostrarToast("Erro ao excluir rota salva.");
+      return;
+    }
+    mostrarToast("Rota removida do PostGIS!");
+    await carregarRotasSalvas();
+  } catch {
+    mostrarToast("Falha de conexão com o servidor.");
+  }
+};
+
+async function salvarRotaAtualNoBanco() {
+  if (!ultimaRotaCalculada) {
+    mostrarToast("Calcule uma rota primeiro antes de salvar.");
+    return;
+  }
+
+  const paradas = ultimaRotaCalculada.paradas || [];
+  const coordOrigem = paradas[0]?.coordinates;
+  const coordDestino = paradas[paradas.length - 1]?.coordinates;
+
+  const payload = {
+    nome:
+      document.getElementById("campoNomeRota")?.value?.trim() ||
+      ultimaRotaCalculada.nome ||
+      "Rota Planejada",
+    origem: coordOrigem ? { type: "Point", coordinates: coordOrigem } : null,
+    destino: coordDestino ? { type: "Point", coordinates: coordDestino } : null,
+    trajeto: ultimaRotaCalculada.trajeto,
+    paradas,
+    distancia_metros: ultimaRotaCalculada.distancia_metros,
+    duracao_segundos: ultimaRotaCalculada.duracao_segundos,
+  };
+
+  try {
+    const resp = await fetch(`${API_BASE}/rotas`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      mostrarToast("Erro ao salvar rota no PostGIS.");
+      return;
+    }
+
+    mostrarToast("Rota salva com sucesso na tabela rotas_planejadas!");
+    await carregarRotasSalvas();
+  } catch {
+    mostrarToast("Erro ao conectar com o servidor.");
+  }
+}
+
+document
+  .getElementById("btnSalvarRotaBanco")
+  ?.addEventListener("click", salvarRotaAtualNoBanco);
+
 localizarUsuario();
 carregarPontosPorAreaVisivel();
+carregarRotasSalvas();
 
