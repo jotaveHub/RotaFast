@@ -105,3 +105,28 @@ export async function updatePonto(req, res) {
     });
   }
 }
+
+export async function deletePonto(req, res) {
+  try {
+    const id = req.params.id || req.body.id;
+    const linhasRemovidas = await Ponto.destroy({
+      where: { id },
+    });
+
+    if (linhasRemovidas > 0) {
+      res.status(200).json({
+        mensagem: "Ponto de atendimento deletado com sucesso",
+      });
+      return;
+    }
+
+    res.status(404).json({
+      mensagem: "Ponto de atendimento não encontrado",
+    });
+  } catch (error) {
+    res.status(400).json({
+      mensagem: "Erro ao remover ponto de atendimento",
+      erro: error.message,
+    });
+  }
+}
