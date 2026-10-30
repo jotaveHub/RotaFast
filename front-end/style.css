@@ -789,17 +789,26 @@ body {
 }
 
 .seq-badge {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--color-route-active);
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.seq-badge.origin {
+  background: var(--color-node-start);
+}
+
+.seq-badge.destination {
+  border-radius: 6px;
+  background: var(--color-node-end);
 }
 
 /* ==========================================================================

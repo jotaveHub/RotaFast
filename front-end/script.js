@@ -288,6 +288,15 @@ function renderizarPontosNoMapaELista(pontos) {
   pontosAtuais = Array.isArray(pontos) ? pontos : [];
   grupoPontos.clearLayers();
 
+  const mapaOrdemRota = new Map();
+  if (ultimaRotaCalculada && Array.isArray(ultimaRotaCalculada.paradas)) {
+    ultimaRotaCalculada.paradas.forEach((parada) => {
+      if (parada.id) {
+        mapaOrdemRota.set(String(parada.id), parada.ordem);
+      }
+    });
+  }
+
   const contadorEl = document.getElementById("contadorPontos");
   if (contadorEl) contadorEl.textContent = String(pontosAtuais.length);
 
@@ -302,45 +311,50 @@ function renderizarPontosNoMapaELista(pontos) {
       idsSelecionadosRota.add(ponto.id);
     }
 
+    const ordemNaRota = mapaOrdemRota.get(String(ponto.id));
+    const numeroExibicao = ordemNaRota !== undefined ? ordemNaRota : idx + 1;
+
     const classePrioridade = ponto.prioridade === "alta" ? "alta" : "";
     const iconePonto = L.divIcon({
       className: "custom-div-icon",
-      html: `<div class="marker-waypoint ${classePrioridade}" title="${ponto.nome}">${
-        idx + 1
-      }</div>`,
+      html: `<div class="marker-waypoint ${classePrioridade}" title="${ponto.nome}">${numeroExibicao}</div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     });
 
-    const m = L.marker(latlng, {
-      icon: iconePonto,
-      pane: "paneMarcadores",
-    }).addTo(grupoPontos);
+    let m = null;
+    // Se o ponto já faz parte da rota otimizada ativa no mapa, evita desenhar marcador duplicado por cima
+    if (ordemNaRota === undefined) {
+      m = L.marker(latlng, {
+        icon: iconePonto,
+        pane: "paneMarcadores",
+      }).addTo(grupoPontos);
 
-    const distHtml =
-      ponto.distancia_metros !== undefined
-        ? `<p><strong>Distância:</strong> ${Number(ponto.distancia_metros).toFixed(0)} m</p>`
-        : "";
+      const distHtml =
+        ponto.distancia_metros !== undefined
+          ? `<p><strong>Distância:</strong> ${Number(ponto.distancia_metros).toFixed(0)} m</p>`
+          : "";
 
-    m.bindPopup(`
-      <div class="popup-card">
-        <h4>${ponto.nome}</h4>
-        <p>${ponto.endereco || "Sem endereço informado"}</p>
-        <p>${ponto.descricao || ""}</p>
-        <p><strong>Tipo:</strong> ${ponto.tipo || "Entrega"} | <strong>Prioridade:</strong> ${
-      ponto.prioridade || "normal"
-    }</p>
-        ${distHtml}
-        <div class="popup-actions">
-          <button type="button" class="btn-popup-edit" onclick="window.prepararEdicaoPonto('${
-            ponto.id
-          }')">Editar</button>
-          <button type="button" class="btn-popup-del" onclick="window.removerPonto('${
-            ponto.id
-          }')">Excluir</button>
+      m.bindPopup(`
+        <div class="popup-card">
+          <h4>${ponto.nome}</h4>
+          <p>${ponto.endereco || "Sem endereço informado"}</p>
+          <p>${ponto.descricao || ""}</p>
+          <p><strong>Tipo:</strong> ${ponto.tipo || "Entrega"} | <strong>Prioridade:</strong> ${
+        ponto.prioridade || "normal"
+      }</p>
+          ${distHtml}
+          <div class="popup-actions">
+            <button type="button" class="btn-popup-edit" onclick="window.prepararEdicaoPonto('${
+              ponto.id
+            }')">Editar</button>
+            <button type="button" class="btn-popup-del" onclick="window.removerPonto('${
+              ponto.id
+            }')">Excluir</button>
+          </div>
         </div>
-      </div>
-    `);
+      `);
+    }
 
     if (listaEl) {
       const card = document.createElement("div");
@@ -352,7 +366,7 @@ function renderizarPontosNoMapaELista(pontos) {
 
       card.innerHTML = `
         <div class="point-info">
-          <h5>${idx + 1}. ${ponto.nome}</h5>
+          <h5>${numeroExibicao}. ${ponto.nome}</h5>
           <p>${ponto.endereco || ponto.descricao || "Coordenada registrada"}</p>
           <div class="point-badges">
             <span class="badge badge-${ponto.prioridade || "normal"}">${
@@ -375,7 +389,7 @@ function renderizarPontosNoMapaELista(pontos) {
 
       card.querySelector("[data-focus]")?.addEventListener("click", () => {
         map.setView(latlng, 16);
-        m.openPopup();
+        if (m) m.openPopup();
       });
 
       listaEl.appendChild(card);
@@ -788,21 +802,22 @@ function renderizarRotaOtimizadaNoMapa(dados) {
     map.fitBounds(linhaPrincipal.getBounds(), { padding: [55, 55] });
   }
 
-  // Camada 5: Marcadores Acessíveis WCAG 2.1 AA (Origem ▶, Waypoints 1..N, Destino 🏁)
+  // Camada 5: Marcadores Acessíveis WCAG 2.1 AA com Numeração Idêntica à Sequência
   if (Array.isArray(dados.paradas)) {
     dados.paradas.forEach((parada, idx) => {
       if (!Array.isArray(parada.coordinates)) return;
       const [lng, lat] = parada.coordinates;
       const ehOrigem = idx === 0;
       const ehDestino = idx === dados.paradas.length - 1 && dados.paradas.length > 1;
+      const classePrioridade = parada.prioridade === "alta" ? "alta" : "";
 
       let htmlMarcador;
       if (ehOrigem) {
-        htmlMarcador = `<div class="marker-origin" title="Origem: ${parada.nome}">${ICONES_SVG.origem}</div>`;
+        htmlMarcador = `<div class="marker-origin" title="${parada.ordem}ª Parada (Origem): ${parada.nome}"><span>${parada.ordem}</span></div>`;
       } else if (ehDestino) {
-        htmlMarcador = `<div class="marker-destination" title="Destino: ${parada.nome}">${ICONES_SVG.destino}</div>`;
+        htmlMarcador = `<div class="marker-destination" title="${parada.ordem}ª Parada (Destino Final): ${parada.nome}"><span>${parada.ordem}</span></div>`;
       } else {
-        htmlMarcador = `<div class="marker-waypoint" title="${parada.ordem}ª Parada: ${parada.nome}">${parada.ordem}</div>`;
+        htmlMarcador = `<div class="marker-waypoint ${classePrioridade}" title="${parada.ordem}ª Parada: ${parada.nome}">${parada.ordem}</div>`;
       }
 
       const icone = L.divIcon({
@@ -825,6 +840,9 @@ function renderizarRotaOtimizadaNoMapa(dados) {
     });
   }
 
+  // Re-sincroniza os marcadores gerais para não sobrepor os marcadores numerados da rota
+  renderizarPontosNoMapaELista(pontosAtuais);
+
   // Atualização do Painel de Telemetria
   const painel = document.getElementById("painelMetricasRota");
   if (painel) {
@@ -845,12 +863,26 @@ function renderizarRotaOtimizadaNoMapa(dados) {
     const listaSeq = document.getElementById("listaSequenciaParadas");
     if (listaSeq && Array.isArray(dados.paradas)) {
       listaSeq.innerHTML = "";
-      dados.paradas.forEach((p) => {
+      dados.paradas.forEach((p, idx) => {
+        const ehOrigem = idx === 0;
+        const ehDestino = idx === dados.paradas.length - 1 && dados.paradas.length > 1;
+        const classeBadge = ehOrigem
+          ? "seq-badge origin"
+          : ehDestino
+          ? "seq-badge destination"
+          : "seq-badge";
+
         const li = document.createElement("li");
+        li.style.cursor = "pointer";
         li.innerHTML = `
-          <span class="seq-badge">${p.ordem}</span>
+          <span class="${classeBadge}">${p.ordem}</span>
           <span>${p.nome}</span>
         `;
+        li.addEventListener("click", () => {
+          if (Array.isArray(p.coordinates)) {
+            map.setView([p.coordinates[1], p.coordinates[0]], 16);
+          }
+        });
         listaSeq.appendChild(li);
       });
     }
@@ -868,6 +900,7 @@ document.getElementById("chkMostrarAlternativa")?.addEventListener("change", () 
 document.getElementById("btnLimparRota")?.addEventListener("click", () => {
   ultimaRotaCalculada = null;
   limparCamadasDeRota();
+  renderizarPontosNoMapaELista(pontosAtuais);
   mostrarToast("Camadas de rota limpas do mapa.");
 });
 
