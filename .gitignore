@@ -12,11 +12,15 @@ back-end/.env.*
 !back-end/.env.example
 
 # Documentação interna, especificações e enunciados
+docs
+/docs/
 docs/
+docs/**
 *.pdf
 especificacao*.md
 planejamento*.md
 arquitetura*.md
+commits-atomicos.md
 
 # Logs e arquivos temporários
 npm-debug.log*
