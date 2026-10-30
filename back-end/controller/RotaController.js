@@ -316,3 +316,118 @@ export async function calcularMelhorRota(req, res) {
     });
   }
 }
+
+export async function createRota(req, res) {
+  try {
+    const {
+      nome = "Rota Planejada",
+      origem,
+      destino = null,
+      trajeto = null,
+      paradas = [],
+      distancia_metros = 0,
+      duracao_segundos = 0,
+    } = req.body;
+
+    const coordOrigem = extrairCoordenadas(origem) ||
+      (paradas.length > 0 ? extrairCoordenadas(paradas[0]) : null);
+
+    if (!coordOrigem) {
+      res.status(400).json({
+        mensagem: "Informe uma localização de origem válida para salvar a rota",
+      });
+      return;
+    }
+
+    const coordDestino = extrairCoordenadas(destino) ||
+      (paradas.length > 1 ? extrairCoordenadas(paradas[paradas.length - 1]) : null);
+
+    const novaRota = await Rota.create({
+      nome,
+      origem: {
+        type: "Point",
+        coordinates: coordOrigem,
+        crs: { type: "name", properties: { name: "EPSG:4326" } },
+      },
+      destino: coordDestino
+        ? {
+            type: "Point",
+            coordinates: coordDestino,
+            crs: { type: "name", properties: { name: "EPSG:4326" } },
+          }
+        : null,
+      trajeto:
+        trajeto && trajeto.type === "LineString"
+          ? {
+              ...trajeto,
+              crs: { type: "name", properties: { name: "EPSG:4326" } },
+            }
+          : null,
+      paradas,
+      distancia_metros: Number(distancia_metros) || 0,
+      duracao_segundos: Number(duracao_segundos) || 0,
+    });
+
+    res.status(201).json(novaRota);
+  } catch (error) {
+    res.status(400).json({
+      mensagem: "Erro ao salvar rota planejada",
+      erro: error.message,
+    });
+  }
+}
+
+export async function getRotas(req, res) {
+  try {
+    const rotas = await Rota.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+    res.status(200).json(rotas);
+  } catch (error) {
+    res.status(500).json({
+      mensagem: "Erro ao listar rotas planejadas",
+      erro: error.message,
+    });
+  }
+}
+
+export async function getRotaById(req, res) {
+  try {
+    const rota = await Rota.findByPk(req.params.id);
+    if (!rota) {
+      res.status(404).json({ mensagem: "Rota planejada não encontrada" });
+      return;
+    }
+    res.status(200).json(rota);
+  } catch (error) {
+    res.status(400).json({
+      mensagem: "Erro ao buscar rota planejada",
+      erro: error.message,
+    });
+  }
+}
+
+export async function deleteRota(req, res) {
+  try {
+    const id = req.params.id || req.body.id;
+    const removidas = await Rota.destroy({
+      where: { id },
+    });
+
+    if (removidas > 0) {
+      res.status(200).json({
+        mensagem: "Rota planejada deletada com sucesso",
+      });
+      return;
+    }
+
+    res.status(404).json({
+      mensagem: "Rota planejada não encontrada",
+    });
+  } catch (error) {
+    res.status(400).json({
+      mensagem: "Erro ao remover rota planejada",
+      erro: error.message,
+    });
+  }
+}
