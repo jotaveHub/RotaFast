@@ -95,6 +95,66 @@ async function consultarTrajetoViarioOSRM(coordenadasOrdenadas) {
   };
 }
 
+async function gerarMalhaDelaunayPostGIS(nos) {
+  if (nos.length < 3) {
+    return nos.length === 2 ? [[0, 1]] : [];
+  }
+
+  try {
+    const multipointWKT = `MULTIPOINT(${nos
+      .map((n) => `${Number(n.coordinates[0])} ${Number(n.coordinates[1])}`)
+      .join(", ")})`;
+
+    const [resultado] = await sequelize.query(
+      `SELECT ST_AsGeoJSON(ST_DelaunayTriangles(ST_GeomFromText(:wkt, 4326), 0.0, 1)) AS geojson`,
+      {
+        replacements: { wkt: multipointWKT },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!resultado || !resultado.geojson) return [];
+
+    const malhaGeo = JSON.parse(resultado.geojson);
+    const linhas =
+      malhaGeo.type === "MultiLineString"
+        ? malhaGeo.coordinates
+        : malhaGeo.type === "LineString"
+        ? [malhaGeo.coordinates]
+        : [];
+
+    const encontrarIndiceMaisProximo = (coord) => {
+      let melhorIdx = 0;
+      let menorDist = Infinity;
+      for (let i = 0; i < nos.length; i++) {
+        const dx = nos[i].coordinates[0] - coord[0];
+        const dy = nos[i].coordinates[1] - coord[1];
+        const d2 = dx * dx + dy * dy;
+        if (d2 < menorDist) {
+          menorDist = d2;
+          melhorIdx = i;
+        }
+      }
+      return melhorIdx;
+    };
+
+    const arestas = [];
+    for (const linha of linhas) {
+      for (let i = 0; i < linha.length - 1; i++) {
+        const u = encontrarIndiceMaisProximo(linha[i]);
+        const v = encontrarIndiceMaisProximo(linha[i + 1]);
+        if (u !== v) {
+          arestas.push([u, v]);
+        }
+      }
+    }
+
+    return arestas;
+  } catch {
+    return [];
+  }
+}
+
 export async function calcularMelhorRota(req, res) {
   try {
     const {
@@ -188,7 +248,7 @@ export async function calcularMelhorRota(req, res) {
     }
 
     const matrizCustosBase = await consultarMatrizOSRM(nos, criterio);
-    const arestasMalha = [];
+    const arestasMalha = await gerarMalhaDelaunayPostGIS(nos);
 
     const resultadoCCH = otimizarSequenciaComCCH({
       nos,
