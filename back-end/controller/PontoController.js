@@ -72,3 +72,36 @@ export async function getPontoById(req, res) {
     });
   }
 }
+
+export async function updatePonto(req, res) {
+  try {
+    const id = req.params.id || req.body.id;
+    const dadosAtualizacao = { ...req.body };
+
+    if (req.body.localizacao || (req.body.latitude !== undefined && req.body.longitude !== undefined)) {
+      dadosAtualizacao.localizacao = normalizarLocalizacao(req.body);
+    }
+
+    const [linhasAfetadas, pontosAtualizados] = await Ponto.update(dadosAtualizacao, {
+      where: { id },
+      returning: true,
+    });
+
+    if (linhasAfetadas > 0) {
+      res.status(200).json({
+        mensagem: "Ponto de atendimento atualizado com sucesso",
+        ponto: pontosAtualizados[0],
+      });
+      return;
+    }
+
+    res.status(404).json({
+      mensagem: "Ponto de atendimento não encontrado",
+    });
+  } catch (error) {
+    res.status(400).json({
+      mensagem: "Erro ao atualizar ponto de atendimento",
+      erro: error.message,
+    });
+  }
+}
