@@ -34,6 +34,43 @@
 </head>
 
 <body>
+  <!-- Barra Superior Flutuante: Geocodificação (Nominatim) + Busca Espacial por Raio (ST_DWithin) -->
+  <header id="topbar">
+    <div class="brand-badge">
+      <span class="brand-dot"></span>
+      <span class="brand-title">RotaFast</span>
+      <span class="brand-tag">PostGIS + CCH</span>
+    </div>
+
+    <div class="search-wrapper">
+      <div id="buscar">
+        <input
+          type="text"
+          id="localBuscar"
+          placeholder="Buscar endereço ou cidade (Nominatim)..."
+          autocomplete="off"
+        />
+        <button type="button" id="btnBuscar" title="Buscar endereço">
+          Buscar
+        </button>
+      </div>
+      <ul id="resultadosBusca" class="search-results hidden"></ul>
+    </div>
+
+    <div class="radius-controls">
+      <select id="selectRaio" title="Distância da busca por raio (ST_DWithin)">
+        <option value="0">Área Visível (ST_Intersects)</option>
+        <option value="1000">Raio: 1 km (1.000 m)</option>
+        <option value="2000">Raio: 2 km (2.000 m)</option>
+        <option value="5000">Raio: 5 km (5.000 m)</option>
+        <option value="10000">Raio: 10 km (10.000 m)</option>
+      </select>
+      <button type="button" id="btnMinhaLocalizacao" class="btn-icon" title="Ir para minha localização atual">
+        📍 Minha Posição
+      </button>
+    </div>
+  </header>
+
   <!-- Mapa Interativo em Tela Cheia (Camada 0) -->
   <div id="map" role="application" aria-label="Mapa interativo de pontos e rotas"></div>
 
