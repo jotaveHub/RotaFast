@@ -269,6 +269,7 @@ document.addEventListener("click", (e) => {
 
 // 5. Estado de Pontos e Carregamento Dinâmico por Área Visível (ST_Intersects)
 let pontosAtuais = [];
+let ultimaRotaCalculada = null;
 const idsSelecionadosRota = new Set();
 let debounceAreaTimer = null;
 
@@ -616,8 +617,6 @@ markerCursor.on("dragend", async () => {
 });
 
 // 9. Seleção de Paradas, Origem e Solicitação de Otimização de Rota (CCH + OSRM)
-let ultimaRotaCalculada = null;
-
 function atualizarChecklistParadas() {
   const container = document.getElementById("listaSelecaoParadas");
   if (!container) return;
