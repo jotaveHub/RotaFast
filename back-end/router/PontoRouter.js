@@ -1,6 +1,8 @@
 import express from "express";
 import {
   getPontos,
+  getPontosByArea,
+  getPontosProximos,
   getPontoById,
   createPonto,
   updatePonto,
@@ -10,6 +12,8 @@ import {
 const PontoRouter = express.Router();
 
 PontoRouter.get("/", getPontos);
+PontoRouter.get("/area", getPontosByArea);
+PontoRouter.get("/proximos", getPontosProximos);
 PontoRouter.get("/:id", getPontoById);
 PontoRouter.post("/", createPonto);
 PontoRouter.patch("/:id", updatePonto);
