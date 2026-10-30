@@ -1,4 +1,6 @@
 import Ponto from "../model/Ponto.js";
+import sequelize from "../database/sequelize.js";
+import { Op } from "sequelize";
 
 function normalizarLocalizacao(dados) {
   if (dados.localizacao && dados.localizacao.type === "Point" && Array.isArray(dados.localizacao.coordinates)) {
@@ -126,6 +128,51 @@ export async function deletePonto(req, res) {
   } catch (error) {
     res.status(400).json({
       mensagem: "Erro ao remover ponto de atendimento",
+      erro: error.message,
+    });
+  }
+}
+
+export async function getPontosByArea(req, res) {
+  try {
+    const minLng = Number(req.query.minLng ?? req.query.minLon);
+    const minLat = Number(req.query.minLat);
+    const maxLng = Number(req.query.maxLng ?? req.query.maxLon);
+    const maxLat = Number(req.query.maxLat);
+
+    if ([minLng, minLat, maxLng, maxLat].some((val) => !Number.isFinite(val))) {
+      res.status(400).json({
+        mensagem: "Informe os limites da área visível: minLng, minLat, maxLng e maxLat",
+      });
+      return;
+    }
+
+    const condicoes = [
+      sequelize.where(
+        sequelize.fn(
+          "ST_Intersects",
+          sequelize.col("localizacao"),
+          sequelize.fn("ST_MakeEnvelope", minLng, minLat, maxLng, maxLat, 4326)
+        ),
+        true
+      ),
+    ];
+
+    if (req.query.status) condicoes.push({ status: req.query.status });
+    if (req.query.tipo) condicoes.push({ tipo: req.query.tipo });
+    if (req.query.prioridade) condicoes.push({ prioridade: req.query.prioridade });
+
+    const pontos = await Ponto.findAll({
+      where: {
+        [Op.and]: condicoes,
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json(pontos);
+  } catch (error) {
+    res.status(500).json({
+      mensagem: "Erro ao buscar pontos na área visível",
       erro: error.message,
     });
   }
