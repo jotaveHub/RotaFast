@@ -244,5 +244,158 @@ document.addEventListener("click", (e) => {
   }
 });
 
+// 5. Estado de Pontos e Carregamento Dinâmico por Área Visível (ST_Intersects)
+let pontosAtuais = [];
+const idsSelecionadosRota = new Set();
+let debounceAreaTimer = null;
+
+function obterLatLngDoPonto(ponto) {
+  if (ponto?.localizacao?.coordinates?.length >= 2) {
+    // No PostGIS/GeoJSON: coordinates = [longitude, latitude]
+    const [lng, lat] = ponto.localizacao.coordinates;
+    return [Number(lat), Number(lng)];
+  }
+  if (ponto?.latitude !== undefined && ponto?.longitude !== undefined) {
+    return [Number(ponto.latitude), Number(ponto.longitude)];
+  }
+  return null;
+}
+
+function renderizarPontosNoMapaELista(pontos) {
+  pontosAtuais = Array.isArray(pontos) ? pontos : [];
+  grupoPontos.clearLayers();
+
+  const contadorEl = document.getElementById("contadorPontos");
+  if (contadorEl) contadorEl.textContent = String(pontosAtuais.length);
+
+  const listaEl = document.getElementById("listaPontos");
+  if (listaEl) listaEl.innerHTML = "";
+
+  pontosAtuais.forEach((ponto, idx) => {
+    const latlng = obterLatLngDoPonto(ponto);
+    if (!latlng) return;
+
+    if (!idsSelecionadosRota.has(ponto.id) && ponto.status !== "concluido") {
+      idsSelecionadosRota.add(ponto.id);
+    }
+
+    const classePrioridade = ponto.prioridade === "alta" ? "alta" : "";
+    const iconePonto = L.divIcon({
+      className: "custom-div-icon",
+      html: `<div class="marker-waypoint ${classePrioridade}" title="${ponto.nome}">${
+        idx + 1
+      }</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+
+    const m = L.marker(latlng, {
+      icon: iconePonto,
+      pane: "paneMarcadores",
+    }).addTo(grupoPontos);
+
+    const distHtml =
+      ponto.distancia_metros !== undefined
+        ? `<p><strong>Distância:</strong> ${Number(ponto.distancia_metros).toFixed(0)} m</p>`
+        : "";
+
+    m.bindPopup(`
+      <div class="popup-card">
+        <h4>${ponto.nome}</h4>
+        <p>${ponto.endereco || "Sem endereço informado"}</p>
+        <p>${ponto.descricao || ""}</p>
+        <p><strong>Tipo:</strong> ${ponto.tipo || "Entrega"} | <strong>Prioridade:</strong> ${
+      ponto.prioridade || "normal"
+    }</p>
+        ${distHtml}
+        <div class="popup-actions">
+          <button type="button" class="btn-popup-edit" onclick="window.prepararEdicaoPonto('${
+            ponto.id
+          }')">Editar</button>
+          <button type="button" class="btn-popup-del" onclick="window.removerPonto('${
+            ponto.id
+          }')">Excluir</button>
+        </div>
+      </div>
+    `);
+
+    if (listaEl) {
+      const card = document.createElement("div");
+      card.className = "point-item";
+      const badgeDist =
+        ponto.distancia_metros !== undefined
+          ? `<span class="badge badge-dist">${Number(ponto.distancia_metros).toFixed(0)} m</span>`
+          : "";
+
+      card.innerHTML = `
+        <div class="point-info">
+          <h5>${idx + 1}. ${ponto.nome}</h5>
+          <p>${ponto.endereco || ponto.descricao || "Coordenada registrada"}</p>
+          <div class="point-badges">
+            <span class="badge badge-${ponto.prioridade || "normal"}">${
+        ponto.prioridade || "normal"
+      }</span>
+            <span class="badge badge-normal">${ponto.tipo || "Entrega"}</span>
+            ${badgeDist}
+          </div>
+        </div>
+        <div class="point-actions">
+          <button type="button" title="Centralizar" data-focus="${ponto.id}">🎯</button>
+          <button type="button" title="Editar" onclick="window.prepararEdicaoPonto('${
+            ponto.id
+          }')">✏️</button>
+          <button type="button" title="Excluir" onclick="window.removerPonto('${
+            ponto.id
+          }')">🗑️</button>
+        </div>
+      `;
+
+      card.querySelector("[data-focus]")?.addEventListener("click", () => {
+        map.setView(latlng, 16);
+        m.openPopup();
+      });
+
+      listaEl.appendChild(card);
+    }
+  });
+
+  if (typeof atualizarChecklistParadas === "function") {
+    atualizarChecklistParadas();
+  }
+}
+
+async function carregarPontosPorAreaVisivel() {
+  const raioSelecionado = Number(document.getElementById("selectRaio")?.value || 0);
+  if (raioSelecionado > 0) {
+    if (typeof carregarPontosPorRaio === "function") {
+      await carregarPontosPorRaio(raioSelecionado);
+    }
+    return;
+  }
+
+  try {
+    const bounds = map.getBounds();
+    const minLng = bounds.getWest();
+    const minLat = bounds.getSouth();
+    const maxLng = bounds.getEast();
+    const maxLat = bounds.getNorth();
+
+    const resp = await fetch(
+      `${API_BASE}/pontos/area?minLng=${minLng}&minLat=${minLat}&maxLng=${maxLng}&maxLat=${maxLat}`
+    );
+    if (!resp.ok) return;
+    const dados = await resp.json();
+    renderizarPontosNoMapaELista(dados);
+  } catch {
+    // Silencioso caso o back-end esteja reiniciando
+  }
+}
+
+map.on("moveend", () => {
+  clearTimeout(debounceAreaTimer);
+  debounceAreaTimer = setTimeout(carregarPontosPorAreaVisivel, 250);
+});
+
 localizarUsuario();
+carregarPontosPorAreaVisivel();
 
