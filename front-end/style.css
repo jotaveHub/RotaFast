@@ -119,21 +119,23 @@ body {
 }
 
 .brand-badge {
-  display: inline-flex;
+  width: 375px;
+  display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.95rem 0.4rem 0.65rem;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
   background: var(--surface-glass-dark);
   color: var(--text-on-primary);
   backdrop-filter: blur(18px);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-floating);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1.5px solid var(--border-glass);
 }
 
 .brand-logo {
-  height: 32px;
-  width: auto;
+  width: 100%;
+  height: 60px;
+  object-fit: contain;
   display: block;
 }
 
@@ -280,6 +282,9 @@ body {
 }
 
 .btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   height: 2.4rem;
   padding: 0 0.95rem;
   border: none;
@@ -293,6 +298,11 @@ body {
   transition: var(--transition-fast);
 }
 
+.ui-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
 .btn-icon:hover {
   filter: brightness(1.08);
 }
@@ -303,7 +313,7 @@ body {
 
 #painelLateral {
   position: fixed;
-  top: 5.2rem;
+  top: 5.85rem;
   left: 1rem;
   bottom: 1rem;
   width: 375px;
@@ -330,6 +340,10 @@ body {
 }
 
 .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   height: 2.35rem;
   border: none;
   border-radius: var(--radius-sm);
@@ -505,7 +519,10 @@ body {
 }
 
 .btn-sm {
-  padding: 0.35rem 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.7rem;
   border: none;
   border-radius: var(--radius-sm);
   background: var(--color-node-start);
@@ -513,6 +530,11 @@ body {
   font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-sm:hover {
+  filter: brightness(1.1);
 }
 
 .list-section {
@@ -664,17 +686,40 @@ body {
 
 .point-actions {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .point-actions button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border-structural);
   background: #1e293b;
-  color: var(--text-main);
-  border-radius: 6px;
-  padding: 0.25rem 0.45rem;
-  font-size: 0.72rem;
+  color: #cbd5e1;
+  border-radius: 7px;
+  padding: 0;
   cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.point-actions button.focus:hover {
+  background: rgba(14, 165, 233, 0.18);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.point-actions button.edit:hover {
+  background: rgba(37, 99, 235, 0.22);
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.point-actions button.delete:hover {
+  background: rgba(220, 38, 38, 0.22);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.45);
 }
 
 /* Telemetria e Métricas */

@@ -92,10 +92,21 @@ const grupoRotaAlternativa = L.layerGroup().addTo(map);
 const grupoRotaAtiva = L.layerGroup().addTo(map);
 const grupoPontos = L.layerGroup().addTo(map);
 
+// Ícones SVG Vetoriais Realistas (Lucide / Feather Style)
+const ICONES_SVG = {
+  cursor: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v4m0 12v4M2 12h4m12 0h4"></path></svg>`,
+  foco: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path><circle cx="12" cy="12" r="7"></circle></svg>`,
+  editar: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+  excluir: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
+  mapa: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>`,
+  origem: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>`,
+  destino: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>`,
+};
+
 // Marcador arrastável para seleção de coordenada / origem
 const iconeCursor = L.divIcon({
   className: "custom-div-icon",
-  html: `<div class="marker-cursor" title="Arraste para escolher a posição">+</div>`,
+  html: `<div class="marker-cursor" title="Arraste para escolher a posição">${ICONES_SVG.cursor}</div>`,
   iconSize: [34, 34],
   iconAnchor: [17, 17],
 });
@@ -352,13 +363,13 @@ function renderizarPontosNoMapaELista(pontos) {
           </div>
         </div>
         <div class="point-actions">
-          <button type="button" title="Centralizar" data-focus="${ponto.id}">🎯</button>
-          <button type="button" title="Editar" onclick="window.prepararEdicaoPonto('${
+          <button type="button" class="action-btn focus" title="Centralizar no mapa" data-focus="${ponto.id}">${ICONES_SVG.foco}</button>
+          <button type="button" class="action-btn edit" title="Editar ponto" onclick="window.prepararEdicaoPonto('${
             ponto.id
-          }')">✏️</button>
-          <button type="button" title="Excluir" onclick="window.removerPonto('${
+          }')">${ICONES_SVG.editar}</button>
+          <button type="button" class="action-btn delete" title="Excluir ponto" onclick="window.removerPonto('${
             ponto.id
-          }')">🗑️</button>
+          }')">${ICONES_SVG.excluir}</button>
         </div>
       `;
 
@@ -787,9 +798,9 @@ function renderizarRotaOtimizadaNoMapa(dados) {
 
       let htmlMarcador;
       if (ehOrigem) {
-        htmlMarcador = `<div class="marker-origin" title="Origem: ${parada.nome}">▶</div>`;
+        htmlMarcador = `<div class="marker-origin" title="Origem: ${parada.nome}">${ICONES_SVG.origem}</div>`;
       } else if (ehDestino) {
-        htmlMarcador = `<div class="marker-destination" title="Destino: ${parada.nome}">🏁</div>`;
+        htmlMarcador = `<div class="marker-destination" title="Destino: ${parada.nome}">${ICONES_SVG.destino}</div>`;
       } else {
         htmlMarcador = `<div class="marker-waypoint" title="${parada.ordem}ª Parada: ${parada.nome}">${parada.ordem}</div>`;
       }
@@ -891,8 +902,8 @@ async function carregarRotasSalvas() {
           <p>${qtdParadas} paradas • ${distKm} km • ~${durMin} min</p>
         </div>
         <div class="point-actions">
-          <button type="button" title="Desenhar no mapa" onclick="window.visualizarRotaSalva('${rota.id}')">🗺️</button>
-          <button type="button" title="Excluir rota" onclick="window.excluirRotaSalva('${rota.id}')">🗑️</button>
+          <button type="button" class="action-btn focus" title="Desenhar rota no mapa" onclick="window.visualizarRotaSalva('${rota.id}')">${ICONES_SVG.mapa}</button>
+          <button type="button" class="action-btn delete" title="Excluir rota" onclick="window.excluirRotaSalva('${rota.id}')">${ICONES_SVG.excluir}</button>
         </div>
       `;
       container.appendChild(card);
