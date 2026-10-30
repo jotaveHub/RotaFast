@@ -475,6 +475,57 @@ document
   .getElementById("btnCancelarEdicao")
   ?.addEventListener("click", limparFormularioPonto);
 
+// 7. Edição e Exclusão de Pontos diretamente pelos Marcadores e Lista
+window.prepararEdicaoPonto = (id) => {
+  const ponto = pontosAtuais.find((p) => p.id === id);
+  if (!ponto) return;
+
+  document.getElementById("pontoIdEdicao").value = ponto.id;
+  document.getElementById("campoNome").value = ponto.nome || "";
+  document.getElementById("campoEndereco").value = ponto.endereco || "";
+  document.getElementById("campoDescricao").value = ponto.descricao || "";
+  document.getElementById("campoTipo").value = ponto.tipo || "Entrega";
+  document.getElementById("campoPrioridade").value = ponto.prioridade || "normal";
+  document.getElementById("campoStatus").value = ponto.status || "pendente";
+
+  document.getElementById("tituloFormPonto").textContent = "Editando Ponto";
+  document.getElementById("btnSalvar").textContent = "Atualizar Ponto";
+  document.getElementById("btnCancelarEdicao")?.classList.remove("hidden");
+
+  const latlng = obterLatLngDoPonto(ponto);
+  if (latlng) {
+    markerCursor.setLatLng(latlng);
+    map.setView(latlng, 16);
+    atualizarTextoCoordenadaCursor();
+  }
+
+  document.getElementById("tabBtnPontos")?.click();
+  mostrarToast("Edite os campos ou arraste o marcador azul e clique em Atualizar.");
+};
+
+window.removerPonto = async (id) => {
+  try {
+    const resp = await fetch(`${API_BASE}/pontos/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!resp.ok) {
+      mostrarToast("Erro ao excluir ponto.");
+      return;
+    }
+
+    idsSelecionadosRota.delete(id);
+    if (document.getElementById("pontoIdEdicao")?.value === id) {
+      limparFormularioPonto();
+    }
+
+    mostrarToast("Ponto removido do PostGIS!");
+    await carregarPontosPorAreaVisivel();
+  } catch {
+    mostrarToast("Falha ao comunicar com o servidor.");
+  }
+};
+
 localizarUsuario();
 carregarPontosPorAreaVisivel();
 
