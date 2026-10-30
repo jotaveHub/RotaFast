@@ -75,3 +75,205 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* ==========================================================================
+   Mapa em Tela Cheia & Barra Superior Flutuante
+   ========================================================================== */
+
+#map {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+}
+
+#topbar {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+#topbar > * {
+  pointer-events: auto;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 1.05rem;
+  background: var(--surface-glass-dark);
+  color: var(--text-on-primary);
+  backdrop-filter: blur(18px);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-floating);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-mesh-edge);
+  box-shadow: 0 0 10px var(--color-mesh-edge);
+}
+
+.brand-title {
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.brand-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgba(37, 99, 235, 0.35);
+  color: #93c5fd;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 520px;
+}
+
+#buscar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-floating);
+  transition: var(--transition-fast);
+}
+
+#buscar:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-floating), var(--shadow-focus);
+}
+
+#localBuscar {
+  flex: 1;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  outline: none;
+}
+
+#localBuscar::placeholder {
+  color: var(--text-muted);
+}
+
+#btnBuscar {
+  height: 2.5rem;
+  padding: 0 1.25rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-route-active);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+#btnBuscar:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  list-style: none;
+  background: var(--surface-card);
+  border: 1px solid var(--border-structural);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-floating);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 1100;
+}
+
+.search-results li {
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--surface-subtle);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.search-results li:last-child {
+  border-bottom: none;
+}
+
+.search-results li:hover {
+  background: #eff6ff;
+  color: var(--color-route-active);
+}
+
+.radius-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid var(--border-glass);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-floating);
+}
+
+#selectRaio {
+  height: 2.4rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--border-structural);
+  border-radius: var(--radius-pill);
+  background: var(--surface-card);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.btn-icon {
+  height: 2.4rem;
+  padding: 0 0.95rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-node-start);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-icon:hover {
+  filter: brightness(1.08);
+}
