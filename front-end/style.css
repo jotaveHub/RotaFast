@@ -277,3 +277,410 @@ body {
 .btn-icon:hover {
   filter: brightness(1.08);
 }
+
+/* ==========================================================================
+   Painel Lateral Flutuante, Abas, Formulários e Telemetria de Rota
+   ========================================================================== */
+
+#painelLateral {
+  position: fixed;
+  top: 5.2rem;
+  left: 1rem;
+  bottom: 1rem;
+  width: 375px;
+  z-index: 950;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  background: var(--surface-glass);
+  backdrop-filter: blur(22px);
+  border: 1.5px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-floating);
+  overflow-y: auto;
+}
+
+.tabs-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
+}
+
+.tab-btn {
+  height: 2.35rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.tab-btn.active {
+  background: var(--surface-card);
+  color: var(--color-route-active);
+  box-shadow: var(--shadow-sm);
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.form-card,
+.telemetry-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.95rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-structural);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.2rem;
+}
+
+.header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-route-active);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.header-text h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.header-text p {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.form-card input[type="text"],
+.form-card select {
+  width: 100%;
+  height: 2.45rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border-structural);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.form-card input[type="text"]:focus,
+.form-card select:focus {
+  background: #ffffff;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.layer-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.btn-primary {
+  flex: 1;
+  height: 2.55rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-route-active);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  height: 2.55rem;
+  padding: 0 0.9rem;
+  border: 1px solid var(--border-structural);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--color-route-active);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.65rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-node-start);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.list-header,
+.stops-selector-header,
+.telemetry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list-header h4,
+.telemetry-header h4 {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.badge-mode {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.points-list,
+.stops-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.point-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface-card);
+  border: 1px solid var(--border-structural);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+}
+
+.point-item:hover {
+  border-color: #93c5fd;
+}
+
+.point-info h5 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.point-info p {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 0.12rem;
+}
+
+.point-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.12rem 0.45rem;
+  border-radius: var(--radius-pill);
+}
+
+.badge-alta {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-normal {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-baixa {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-dist {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.point-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.point-actions button {
+  border: 1px solid var(--border-structural);
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+/* Telemetria e Métricas */
+.telemetry-card {
+  background: #0f172a;
+  color: #f8fafc;
+  border-color: #1e293b;
+}
+
+.telemetry-card .telemetry-header h4 {
+  color: #f8fafc;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.metric-box {
+  padding: 0.55rem 0.65rem;
+  background: #1e293b;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.68rem;
+  color: #94a3b8;
+}
+
+.metric-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin-top: 0.1rem;
+}
+
+.metric-value.highlight {
+  color: #34d399;
+}
+
+.sequence-title {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.sequence-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+.sequence-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  background: #1e293b;
+  border-radius: 6px;
+  font-size: 0.76rem;
+}
+
+.seq-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-route-active);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
