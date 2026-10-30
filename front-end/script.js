@@ -396,6 +396,85 @@ map.on("moveend", () => {
   debounceAreaTimer = setTimeout(carregarPontosPorAreaVisivel, 250);
 });
 
+// 6. Cadastro de Novo Ponto enviando GeoJSON Point para a API
+function limparFormularioPonto() {
+  document.getElementById("pontoIdEdicao").value = "";
+  document.getElementById("campoNome").value = "";
+  document.getElementById("campoEndereco").value = "";
+  document.getElementById("campoDescricao").value = "";
+  document.getElementById("campoTipo").value = "Entrega";
+  document.getElementById("campoPrioridade").value = "normal";
+  document.getElementById("campoStatus").value = "pendente";
+  document.getElementById("tituloFormPonto").textContent = "Novo Ponto de Atendimento";
+  document.getElementById("btnSalvar").textContent = "Salvar Ponto";
+  document.getElementById("btnCancelarEdicao")?.classList.add("hidden");
+}
+
+async function salvarPonto() {
+  const idEdicao = document.getElementById("pontoIdEdicao")?.value?.trim();
+  const nome = document.getElementById("campoNome")?.value?.trim();
+  const endereco = document.getElementById("campoEndereco")?.value?.trim();
+  const descricao = document.getElementById("campoDescricao")?.value?.trim();
+  const tipo = document.getElementById("campoTipo")?.value || "Entrega";
+  const prioridade = document.getElementById("campoPrioridade")?.value || "normal";
+  const status = document.getElementById("campoStatus")?.value || "pendente";
+
+  if (!nome) {
+    mostrarToast("Informe o nome do ponto de atendimento.");
+    return;
+  }
+
+  const pos = markerCursor.getLatLng();
+  // No PostGIS (GeoJSON): coordinates = [longitude, latitude]
+  const payload = {
+    nome,
+    endereco,
+    descricao,
+    tipo,
+    prioridade,
+    status,
+    localizacao: {
+      type: "Point",
+      coordinates: [pos.lng, pos.lat],
+    },
+  };
+
+  try {
+    const url = idEdicao
+      ? `${API_BASE}/pontos/${idEdicao}`
+      : `${API_BASE}/pontos`;
+    const metodo = idEdicao ? "PATCH" : "POST";
+
+    const resp = await fetch(url, {
+      method: metodo,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      mostrarToast("Erro ao salvar ponto no banco de dados.");
+      return;
+    }
+
+    const salvo = await resp.json();
+    const novoId = salvo?.id || salvo?.ponto?.id;
+    if (novoId) idsSelecionadosRota.add(novoId);
+
+    mostrarToast(
+      idEdicao ? "Ponto atualizado com sucesso!" : "Ponto cadastrado no PostGIS!"
+    );
+    limparFormularioPonto();
+    await carregarPontosPorAreaVisivel();
+  } catch {
+    mostrarToast("Falha de conexão com o servidor.");
+  }
+}
+
+document.getElementById("btnSalvar")?.addEventListener("click", salvarPonto);
+document
+  .getElementById("btnCancelarEdicao")
+  ?.addEventListener("click", limparFormularioPonto);
+
 localizarUsuario();
 carregarPontosPorAreaVisivel();
 
