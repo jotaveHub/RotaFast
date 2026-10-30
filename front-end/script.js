@@ -54,14 +54,14 @@ const tileEsriSatelite = L.tileLayer(
   }
 );
 
-tileOSM.addTo(map);
+tileOSMEscuro.addTo(map);
 
 L.control
   .layers(
     {
+      "Mapa Tema Escuro (Padrão)": tileOSMEscuro,
       "OpenStreetMap Padrão": tileOSM,
       "Mapa Claro Neutro": tileOSMNeutro,
-      "Mapa Tema Escuro": tileOSMEscuro,
       "Satélite (Esri)": tileEsriSatelite,
     },
     {},

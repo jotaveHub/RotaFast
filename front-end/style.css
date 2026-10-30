@@ -26,25 +26,25 @@
   --node-waypoint-fill: var(--color-node-waypoint);
   --node-waypoint-border: var(--color-node-waypoint-border);
 
-  /* 1.2. Painéis e Interface de Telemetria (UI) */
-  --bg-canvas: #f8fafc;
-  --surface-glass: rgba(255, 255, 255, 0.92);
-  --surface-glass-dark: rgba(15, 23, 42, 0.92);
-  --surface-card: #ffffff;
-  --surface-subtle: #f1f5f9;
-  --border-structural: #e2e8f0;
-  --border-glass: rgba(255, 255, 255, 0.88);
-  --border-focus: #2563eb;
+  /* 1.2. Painéis e Interface de Telemetria (UI — Modo Escuro Slate) */
+  --bg-canvas: #020617;
+  --surface-glass: rgba(15, 23, 42, 0.9);
+  --surface-glass-dark: rgba(15, 23, 42, 0.94);
+  --surface-card: #0f172a;
+  --surface-subtle: #1e293b;
+  --border-structural: #1e293b;
+  --border-glass: rgba(148, 163, 184, 0.18);
+  --border-focus: #38bdf8;
 
-  --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
   --text-on-primary: #f8fafc;
 
   /* Sombras e Raios de Borda */
-  --shadow-floating: 0 18px 40px -10px rgba(15, 23, 42, 0.16),
-    0 0 0 1px rgba(15, 23, 42, 0.06);
-  --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.08);
-  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.22);
+  --shadow-floating: 0 20px 45px -10px rgba(2, 6, 23, 0.65),
+    0 0 0 1px rgba(148, 163, 184, 0.14);
+  --shadow-sm: 0 4px 14px rgba(2, 6, 23, 0.4);
+  --shadow-focus: 0 0 0 3px rgba(56, 189, 248, 0.25);
 
   --radius-pill: 9999px;
   --radius-xl: 22px;
@@ -94,7 +94,7 @@ body {
 }
 
 .map-tiles-dark {
-  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+  filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(92%) saturate(85%);
 }
 
 .map-tiles-satellite {
@@ -404,7 +404,7 @@ body {
   padding: 0 0.8rem;
   border: 1px solid var(--border-structural);
   border-radius: var(--radius-sm);
-  background: #f8fafc;
+  background: #1e293b;
   color: var(--text-main);
   font-family: inherit;
   font-size: 0.84rem;
@@ -413,9 +413,13 @@ body {
   transition: var(--transition-fast);
 }
 
+.form-card input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
 .form-card input[type="text"]:focus,
 .form-card select:focus {
-  background: #ffffff;
+  background: #0f172a;
   border-color: var(--border-focus);
   box-shadow: var(--shadow-focus);
 }
@@ -617,7 +621,8 @@ body {
 
 .point-actions button {
   border: 1px solid var(--border-structural);
-  background: #f8fafc;
+  background: #1e293b;
+  color: var(--text-main);
   border-radius: 6px;
   padding: 0.25rem 0.45rem;
   font-size: 0.72rem;
