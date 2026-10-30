@@ -177,3 +177,48 @@ export async function getPontosByArea(req, res) {
     });
   }
 }
+
+export async function getPontosProximos(req, res) {
+  try {
+    const lat = Number(req.query.lat ?? req.query.latitude);
+    const lng = Number(req.query.lng ?? req.query.lon ?? req.query.longitude);
+    const raio = Number(req.query.raio ?? 2000);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(raio) || raio <= 0) {
+      res.status(400).json({
+        mensagem: "Informe coordenadas válidas (lat, lng) e um raio positivo em metros",
+      });
+      return;
+    }
+
+    const pontoReferenciaGeog = `ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`;
+    const distanciaLiteral = sequelize.literal(
+      `ROUND(ST_Distance("localizacao"::geography, ${pontoReferenciaGeog})::numeric, 2)`
+    );
+
+    const condicoes = [
+      sequelize.literal(`ST_DWithin("localizacao"::geography, ${pontoReferenciaGeog}, ${raio})`),
+    ];
+
+    if (req.query.status) condicoes.push({ status: req.query.status });
+    if (req.query.tipo) condicoes.push({ tipo: req.query.tipo });
+    if (req.query.prioridade) condicoes.push({ prioridade: req.query.prioridade });
+
+    const pontos = await Ponto.findAll({
+      attributes: {
+        include: [[distanciaLiteral, "distancia_metros"]],
+      },
+      where: {
+        [Op.and]: condicoes,
+      },
+      order: [[distanciaLiteral, "ASC"]],
+    });
+
+    res.status(200).json(pontos);
+  } catch (error) {
+    res.status(500).json({
+      mensagem: "Erro ao buscar pontos próximos por raio",
+      erro: error.message,
+    });
+  }
+}
