@@ -74,6 +74,189 @@
   <!-- Mapa Interativo em Tela Cheia (Camada 0) -->
   <div id="map" role="application" aria-label="Mapa interativo de pontos e rotas"></div>
 
+  <!-- Painel Lateral Flutuante: CRUD de Pontos e Planejador de Rotas CCH -->
+  <aside id="painelLateral" aria-label="Painel de controle de pontos e rotas">
+    <nav class="tabs-nav">
+      <button type="button" id="tabBtnPontos" class="tab-btn active" data-tab="abaPontos">
+        📍 Pontos (<span id="contadorPontos">0</span>)
+      </button>
+      <button type="button" id="tabBtnRotas" class="tab-btn" data-tab="abaRotas">
+        ⚡ Otimizar Rota (CCH)
+      </button>
+    </nav>
+
+    <!-- ABA 1: Cadastro, Edição e Lista de Pontos -->
+    <section id="abaPontos" class="tab-content active">
+      <div id="form" class="form-card">
+        <div class="form-header">
+          <div class="header-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+          </div>
+          <div class="header-text">
+            <h3 id="tituloFormPonto">Novo Ponto de Atendimento</h3>
+            <p id="coordAtualTexto">Arraste o marcador ou clique no mapa</p>
+          </div>
+        </div>
+
+        <input type="hidden" id="pontoIdEdicao" value="" />
+        <input type="text" id="campoNome" placeholder="Nome do atendimento (ex: Instalação Solar)" />
+        <input type="text" id="campoEndereco" placeholder="Endereço ou referência" />
+        <input type="text" id="campoDescricao" placeholder="Descrição técnica detalhada" />
+
+        <div class="form-row">
+          <select id="campoTipo" title="Tipo de serviço">
+            <option value="Entrega">Entrega</option>
+            <option value="Instalação">Instalação</option>
+            <option value="Manutenção">Manutenção</option>
+            <option value="Coleta">Coleta</option>
+            <option value="Visita Técnica">Visita Técnica</option>
+          </select>
+
+          <select id="campoPrioridade" title="Prioridade do atendimento">
+            <option value="normal">Prioridade: Normal</option>
+            <option value="alta">Prioridade: Alta</option>
+            <option value="baixa">Prioridade: Baixa</option>
+          </select>
+        </div>
+
+        <select id="campoStatus" title="Status do atendimento">
+          <option value="pendente">Status: Pendente</option>
+          <option value="em_andamento">Status: Em Andamento</option>
+          <option value="concluido">Status: Concluído</option>
+        </select>
+
+        <div class="form-actions">
+          <button type="button" id="btnSalvar" class="btn-primary">Salvar Ponto</button>
+          <button type="button" id="btnCancelarEdicao" class="btn-secondary hidden">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="list-section">
+        <div class="list-header">
+          <h4>Pontos Carregados</h4>
+          <span id="modoBuscaBadge" class="badge-mode">Área Visível</span>
+        </div>
+        <div id="listaPontos" class="points-list"></div>
+      </div>
+    </section>
+
+    <!-- ABA 2: Planejador e Otimização de Rotas (CCH + Delaunay + OSRM) -->
+    <section id="abaRotas" class="tab-content hidden">
+      <div class="form-card">
+        <div class="form-header">
+          <div class="header-icon route-icon">⚡</div>
+          <div class="header-text">
+            <h3>Planejador de Rota</h3>
+            <p>CCH + Triangulação PostGIS + OSRM</p>
+          </div>
+        </div>
+
+        <input type="text" id="campoNomeRota" placeholder="Nome da rota (ex: Rota Manhã - Centro)" value="Rota Otimizada CCH" />
+
+        <label class="field-label" for="campoCriterioCCH">Critério de Customização (Fase 2 do CCH)</label>
+        <select id="campoCriterioCCH">
+          <option value="prioridade">Prioridade + Tempo Viário (Recomendado)</option>
+          <option value="tempo">Menor Tempo Viário (OSRM + CCH)</option>
+          <option value="distancia">Menor Distância (Geodésica/Viária)</option>
+        </select>
+
+        <div class="layer-toggles">
+          <label class="checkbox-label">
+            <input type="checkbox" id="chkUsarPosicaoOrigem" checked />
+            <span>Usar marcador azul atual como Origem (▶)</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chkMostrarMalha" checked />
+            <span>Exibir Malha de Triangulação & Atalhos CCH</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="chkMostrarAlternativa" checked />
+            <span>Exibir Rota Não-Otimizada (Tracejada)</span>
+          </label>
+        </div>
+
+        <div class="stops-selector-header">
+          <span>Paradas Selecionadas</span>
+          <button type="button" id="btnSelecionarTodos" class="btn-link">Marcar todos</button>
+        </div>
+        <div id="listaSelecaoParadas" class="stops-checklist"></div>
+
+        <div class="form-actions">
+          <button type="button" id="btnOtimizarRota" class="btn-primary">Calcular Melhor Rota</button>
+          <button type="button" id="btnLimparRota" class="btn-secondary">Limpar</button>
+        </div>
+      </div>
+
+      <!-- Telemetria e Resultado da Otimização -->
+      <div id="painelMetricasRota" class="telemetry-card hidden">
+        <div class="telemetry-header">
+          <h4>Telemetria da Rota</h4>
+          <button type="button" id="btnSalvarRotaBanco" class="btn-sm">💾 Salvar no PostGIS</button>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-box">
+            <span class="metric-label">Distância Total</span>
+            <strong id="metricaDistancia" class="metric-value">0,0 km</strong>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Tempo Estimado</span>
+            <strong id="metricaDuracao" class="metric-value">0 min</strong>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Economia Viária</span>
+            <strong id="metricaEconomia" class="metric-value highlight">0 m</strong>
+          </div>
+          <div class="metric-box">
+            <span class="metric-label">Atalhos CCH</span>
+            <strong id="metricaAtalhosCCH" class="metric-value">0</strong>
+          </div>
+        </div>
+
+        <h5 class="sequence-title">Sequência Otimizada de Visita</h5>
+        <ol id="listaSequenciaParadas" class="sequence-list"></ol>
+      </div>
+
+      <!-- Histórico de Rotas Salvas no PostGIS -->
+      <div class="list-section">
+        <div class="list-header">
+          <h4>Rotas Salvas no PostGIS</h4>
+        </div>
+        <div id="listaRotasSalvas" class="points-list"></div>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Legenda de Camadas Vetoriais (Especificação Visual WCAG 2.1 AA) -->
+  <div id="legendaMapa" class="map-legend">
+    <div class="legend-item">
+      <span class="legend-line route-active"></span>
+      <span>Rota Otimizada (`#2563EB`)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-line route-alt"></span>
+      <span>Ordem Original (`#64748B`)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-line mesh-edge"></span>
+      <span>Malha PostGIS + CCH (`#0EA5E9`)</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-node node-start">▶</span>
+      <span>Origem</span>
+      <span class="legend-node node-waypoint">1</span>
+      <span>Parada</span>
+      <span class="legend-node node-end">🏁</span>
+      <span>Destino</span>
+    </div>
+  </div>
+
+  <!-- Toast de Notificações -->
+  <div id="toastNotificacao" class="toast hidden" role="status" aria-live="polite"></div>
+
   <script src="script.js"></script>
 </body>
 
