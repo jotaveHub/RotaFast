@@ -56,3 +56,19 @@ export async function createPonto(req, res) {
     });
   }
 }
+
+export async function getPontoById(req, res) {
+  try {
+    const ponto = await Ponto.findByPk(req.params.id);
+    if (!ponto) {
+      res.status(404).json({ mensagem: "Ponto de atendimento não encontrado" });
+      return;
+    }
+    res.status(200).json(ponto);
+  } catch (error) {
+    res.status(400).json({
+      mensagem: "Erro ao buscar ponto de atendimento",
+      erro: error.message,
+    });
+  }
+}
