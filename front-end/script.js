@@ -526,6 +526,58 @@ window.removerPonto = async (id) => {
   }
 };
 
+// 8. Busca Espacial por Distância/Raio (ST_DWithin + ST_Distance)
+const selectRaioEl = document.getElementById("selectRaio");
+const badgeModoEl = document.getElementById("modoBuscaBadge");
+
+async function carregarPontosPorRaio(raioMetros) {
+  grupoRaio.clearLayers();
+  const pos = markerCursor.getLatLng();
+
+  L.circle(pos, {
+    radius: raioMetros,
+    pane: "paneRaio",
+    color: "#0ea5e9",
+    weight: 2,
+    dashArray: "6 4",
+    fillColor: "#0ea5e9",
+    fillOpacity: 0.1,
+  }).addTo(grupoRaio);
+
+  if (badgeModoEl) {
+    badgeModoEl.textContent = `Raio: ${(raioMetros / 1000).toFixed(1)} km`;
+  }
+
+  try {
+    const resp = await fetch(
+      `${API_BASE}/pontos/proximos?lat=${pos.lat}&lng=${pos.lng}&raio=${raioMetros}`
+    );
+    if (!resp.ok) return;
+    const dados = await resp.json();
+    renderizarPontosNoMapaELista(dados);
+  } catch {
+    mostrarToast("Erro ao consultar pontos por raio.");
+  }
+}
+
+selectRaioEl?.addEventListener("change", async () => {
+  const valor = Number(selectRaioEl.value || 0);
+  if (valor === 0) {
+    grupoRaio.clearLayers();
+    if (badgeModoEl) badgeModoEl.textContent = "Área Visível";
+    await carregarPontosPorAreaVisivel();
+  } else {
+    await carregarPontosPorRaio(valor);
+  }
+});
+
+markerCursor.on("dragend", async () => {
+  const valor = Number(selectRaioEl?.value || 0);
+  if (valor > 0) {
+    await carregarPontosPorRaio(valor);
+  }
+});
+
 localizarUsuario();
 carregarPontosPorAreaVisivel();
 
