@@ -1,9 +1,15 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import PontoRouter from "./router/PontoRouter.js";
+import RotaRouter from "./router/RotaRouter.js";
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
@@ -17,6 +23,10 @@ app.get("/health", (req, res) => {
 
 app.use("/pontos", PontoRouter);
 app.use("/api/v1/pontos", PontoRouter);
+app.use("/rotas", RotaRouter);
+app.use("/api/v1/rotas", RotaRouter);
+
+app.use(express.static(path.join(__dirname, "../front-end")));
 
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
