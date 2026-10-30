@@ -578,6 +578,117 @@ markerCursor.on("dragend", async () => {
   }
 });
 
+// 9. Seleção de Paradas, Origem e Solicitação de Otimização de Rota (CCH + OSRM)
+let ultimaRotaCalculada = null;
+
+function atualizarChecklistParadas() {
+  const container = document.getElementById("listaSelecaoParadas");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (pontosAtuais.length === 0) {
+    container.innerHTML = `<p style="font-size: 0.76rem; color: var(--text-muted);">Nenhum ponto carregado na área atual.</p>`;
+    return;
+  }
+
+  pontosAtuais.forEach((ponto) => {
+    const label = document.createElement("label");
+    label.className = "checkbox-label";
+    label.style.padding = "0.3rem 0.4rem";
+
+    const checked = idsSelecionadosRota.has(ponto.id) ? "checked" : "";
+    label.innerHTML = `
+      <input type="checkbox" value="${ponto.id}" ${checked} />
+      <span>${ponto.nome} <small style="color: var(--text-muted);">(${
+      ponto.prioridade || "normal"
+    })</small></span>
+    `;
+
+    const chk = label.querySelector("input");
+    chk?.addEventListener("change", () => {
+      if (chk.checked) {
+        idsSelecionadosRota.add(ponto.id);
+      } else {
+        idsSelecionadosRota.delete(ponto.id);
+      }
+    });
+
+    container.appendChild(label);
+  });
+}
+
+document.getElementById("btnSelecionarTodos")?.addEventListener("click", () => {
+  const todosMarcados = pontosAtuais.every((p) => idsSelecionadosRota.has(p.id));
+  if (todosMarcados) {
+    idsSelecionadosRota.clear();
+  } else {
+    pontosAtuais.forEach((p) => idsSelecionadosRota.add(p.id));
+  }
+  atualizarChecklistParadas();
+});
+
+async function solicitarOtimizacaoRota() {
+  const nome =
+    document.getElementById("campoNomeRota")?.value?.trim() || "Rota Otimizada CCH";
+  const criterio =
+    document.getElementById("campoCriterioCCH")?.value || "prioridade";
+  const usarCursorOrigem = document.getElementById("chkUsarPosicaoOrigem")?.checked;
+  const pontosIds = Array.from(idsSelecionadosRota);
+
+  if (pontosIds.length === 0) {
+    mostrarToast("Selecione ao menos 1 ponto de atendimento para calcular a rota.");
+    return;
+  }
+
+  const posOrigem = markerCursor.getLatLng();
+  const payload = {
+    nome,
+    criterio,
+    pontosIds,
+    salvar: false,
+  };
+
+  if (usarCursorOrigem) {
+    payload.origem = {
+      nome: "Ponto de Partida (Marcador)",
+      latitude: posOrigem.lat,
+      longitude: posOrigem.lng,
+    };
+  }
+
+  const btnOtimizar = document.getElementById("btnOtimizarRota");
+  try {
+    if (btnOtimizar) btnOtimizar.textContent = "Calculando CCH...";
+
+    const resp = await fetch(`${API_BASE}/rotas/otimizar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const dados = await resp.json();
+    if (!resp.ok) {
+      mostrarToast(dados.mensagem || "Não foi possível otimizar a rota.");
+      return;
+    }
+
+    ultimaRotaCalculada = dados;
+    if (typeof renderizarRotaOtimizadaNoMapa === "function") {
+      renderizarRotaOtimizadaNoMapa(dados);
+    }
+    mostrarToast("Rota otimizada com algoritmo CCH + PostGIS + OSRM!");
+  } catch {
+    mostrarToast("Erro ao comunicar com o servidor de rotas.");
+  } finally {
+    if (btnOtimizar) btnOtimizar.textContent = "Calcular Melhor Rota";
+  }
+}
+
+document
+  .getElementById("btnOtimizarRota")
+  ?.addEventListener("click", solicitarOtimizacaoRota);
+
 localizarUsuario();
 carregarPontosPorAreaVisivel();
 
