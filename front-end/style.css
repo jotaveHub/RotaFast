@@ -684,3 +684,245 @@ body {
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* ==========================================================================
+   Marcadores Acessíveis WCAG 2.1 AA, Legenda Vetorial, Popups & Responsividade
+   ========================================================================== */
+
+.custom-div-icon {
+  background: transparent;
+  border: none;
+}
+
+/* Origem: Marcador circular sólido #059669 com anel de contraste e glifo ▶ */
+.marker-origin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-node-start);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px var(--color-node-start), 0 6px 14px rgba(5, 150, 105, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+/* Destino: Forma diferenciada (losango/quadrado arredondado) #EA580C */
+.marker-destination {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-node-end);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 2px var(--color-node-end), 0 6px 14px rgba(234, 88, 12, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+/* Waypoint: Marcador circular branco com borda 2.5px #1D4ED8 e numeração interna */
+.marker-waypoint {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-node-waypoint);
+  color: var(--color-node-waypoint-border);
+  border: 2.5px solid var(--color-node-waypoint-border);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.marker-waypoint.alta {
+  border-color: var(--color-heat-penalty);
+  color: var(--color-heat-penalty);
+}
+
+/* Marcador arrastável de seleção/cursor */
+.marker-cursor {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-route-active);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  box-shadow: 0 0 0 4px var(--color-route-active-glow), 0 8px 18px rgba(37, 99, 235, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* Legenda de Camadas Vetoriais */
+.map-legend {
+  position: fixed;
+  right: 1rem;
+  bottom: 1.5rem;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 0.95rem;
+  background: var(--surface-glass-dark);
+  color: var(--text-on-primary);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-floating);
+  font-size: 0.74rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-line {
+  width: 24px;
+  height: 4px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.legend-line.route-active {
+  background: var(--color-route-active);
+  box-shadow: 0 0 0 1px #ffffff;
+}
+
+.legend-line.route-alt {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--color-route-alt),
+    var(--color-route-alt) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.legend-line.mesh-edge {
+  height: 2px;
+  background: var(--color-mesh-edge);
+}
+
+.legend-node {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.legend-node.node-start {
+  border-radius: 50%;
+  background: var(--color-node-start);
+  color: #ffffff;
+}
+
+.legend-node.node-waypoint {
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--color-node-waypoint-border);
+  border: 2px solid var(--color-node-waypoint-border);
+}
+
+.legend-node.node-end {
+  border-radius: 4px;
+  background: var(--color-node-end);
+  color: #ffffff;
+}
+
+/* Customização do Leaflet Popup e Controles */
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface-glass) !important;
+  backdrop-filter: blur(18px) !important;
+  box-shadow: var(--shadow-floating) !important;
+  color: var(--text-main) !important;
+  font-family: inherit !important;
+}
+
+.popup-card h4 {
+  font-size: 0.88rem;
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+
+.popup-card p {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.popup-actions button {
+  flex: 1;
+  padding: 0.35rem 0.55rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-popup-edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.btn-popup-del {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Toast de Notificação */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  padding: 0.7rem 1.25rem;
+  background: var(--surface-glass-dark);
+  color: #ffffff;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-floating);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  #topbar {
+    flex-wrap: wrap;
+  }
+
+  #painelLateral {
+    top: auto;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: calc(100% - 1.5rem);
+    max-height: 52vh;
+  }
+
+  .map-legend {
+    display: none;
+  }
+}
