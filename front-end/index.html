@@ -173,6 +173,13 @@
 
         <input type="text" id="campoNomeRota" placeholder="Nome da rota (ex: Rota Manhã - Centro)" value="Rota Otimizada CCH" />
 
+        <label class="field-label" for="campoOrigemRota">Ponto de Partida (Origem)</label>
+        <select id="campoOrigemRota">
+          <option value="">Selecione a origem de partida...</option>
+          <option value="__gps__">Minha Localização Atual (GPS)</option>
+          <option value="__cursor__">Marcador Azul no Mapa (Posição Selecionada)</option>
+        </select>
+
         <label class="field-label" for="campoCriterioCCH">Critério de Customização (Fase 2 do CCH)</label>
         <select id="campoCriterioCCH">
           <option value="prioridade">Prioridade + Tempo Viário (Recomendado)</option>
@@ -181,10 +188,6 @@
         </select>
 
         <div class="layer-toggles">
-          <label class="checkbox-label">
-            <input type="checkbox" id="chkUsarPosicaoOrigem" />
-            <span>Incluir marcador azul atual como ponto de partida extra</span>
-          </label>
           <label class="checkbox-label">
             <input type="checkbox" id="chkMostrarMalha" />
             <span>Exibir Malha de Triangulação & Atalhos CCH</span>

@@ -190,9 +190,13 @@ export async function calcularMelhorRota(req, res) {
 
     let pontosBanco = [];
     if (Array.isArray(pontosIds) && pontosIds.length > 0) {
-      pontosBanco = await Ponto.findAll({
+      const encontrados = await Ponto.findAll({
         where: { id: { [Op.in]: pontosIds } },
       });
+      const mapaPorId = new Map(encontrados.map((p) => [String(p.id), p]));
+      pontosBanco = pontosIds
+        .map((id) => mapaPorId.get(String(id)))
+        .filter(Boolean);
     } else {
       pontosBanco = await Ponto.findAll({
         where: { status: { [Op.ne]: "concluido" } },
@@ -213,13 +217,20 @@ export async function calcularMelhorRota(req, res) {
     let pontosParada = [...pontosBanco];
 
     if (coordOrigem) {
+      const idOrigem = origem?.id ? String(origem.id) : "origem";
       nos.push({
-        id: "origem",
+        id: idOrigem,
         nome: origem?.nome || "Ponto de Partida (Origem)",
-        tipo: "Origem",
-        prioridade: "alta",
+        endereco: origem?.endereco || "",
+        tipo: origem?.tipo || "Origem",
+        prioridade: origem?.prioridade || "alta",
         coordinates: coordOrigem,
       });
+      if (origem?.id) {
+        pontosParada = pontosParada.filter(
+          (p) => String(p.id) !== String(origem.id)
+        );
+      }
     } else {
       const primeiro = pontosParada.shift();
       nos.push({

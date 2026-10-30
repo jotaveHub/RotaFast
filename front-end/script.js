@@ -149,11 +149,14 @@ function mostrarToast(mensagem) {
 }
 
 // 3. Geolocalização do Navegador
+let ultimaPosicaoGPS = null;
+
 function localizarUsuario() {
   map.locate({ setView: true, maxZoom: 15 });
 }
 
 map.on("locationfound", (evento) => {
+  ultimaPosicaoGPS = evento.latlng;
   markerCursor.setLatLng(evento.latlng);
   atualizarTextoCoordenadaCursor();
   mostrarToast("Localização atual obtida com sucesso!");
@@ -618,6 +621,36 @@ markerCursor.on("dragend", async () => {
 
 // 9. Seleção de Paradas, Origem e Solicitação de Otimização de Rota (CCH + OSRM)
 function atualizarChecklistParadas() {
+  const selectOrigem = document.getElementById("campoOrigemRota");
+  if (selectOrigem) {
+    const valorAtual = selectOrigem.value;
+    selectOrigem.innerHTML = `
+      <option value="">Selecione a origem de partida...</option>
+      <option value="__gps__">Minha Localização Atual (GPS)</option>
+      <option value="__cursor__">Marcador Azul no Mapa (Posição Selecionada)</option>
+    `;
+
+    if (pontosAtuais.length > 0) {
+      const grupo = document.createElement("optgroup");
+      grupo.label = "Pontos Carregados";
+      pontosAtuais.forEach((ponto, idx) => {
+        const opt = document.createElement("option");
+        opt.value = String(ponto.id);
+        opt.textContent = `${idx + 1}. ${ponto.nome}`;
+        grupo.appendChild(opt);
+      });
+      selectOrigem.appendChild(grupo);
+    }
+
+    if (
+      valorAtual === "__gps__" ||
+      valorAtual === "__cursor__" ||
+      pontosAtuais.some((p) => String(p.id) === String(valorAtual))
+    ) {
+      selectOrigem.value = valorAtual;
+    }
+  }
+
   const container = document.getElementById("listaSelecaoParadas");
   if (!container) return;
 
@@ -654,6 +687,12 @@ function atualizarChecklistParadas() {
   });
 }
 
+document.getElementById("campoOrigemRota")?.addEventListener("change", (e) => {
+  if (e.target.value === "__gps__") {
+    localizarUsuario();
+  }
+});
+
 document.getElementById("btnSelecionarTodos")?.addEventListener("click", () => {
   const todosMarcados = pontosAtuais.every((p) => idsSelecionadosRota.has(p.id));
   if (todosMarcados) {
@@ -669,8 +708,16 @@ async function solicitarOtimizacaoRota() {
     document.getElementById("campoNomeRota")?.value?.trim() || "Rota Otimizada CCH";
   const criterio =
     document.getElementById("campoCriterioCCH")?.value || "prioridade";
-  const usarCursorOrigem = document.getElementById("chkUsarPosicaoOrigem")?.checked;
-  const pontosIds = Array.from(idsSelecionadosRota);
+  const selectOrigem = document.getElementById("campoOrigemRota");
+  const valorOrigem = selectOrigem?.value || "";
+
+  if (!valorOrigem) {
+    mostrarToast("Por favor, selecione o Ponto de Partida (Origem) antes de calcular a rota.");
+    selectOrigem?.focus();
+    return;
+  }
+
+  let pontosIds = Array.from(idsSelecionadosRota);
 
   if (pontosIds.length === 0) {
     mostrarToast("Selecione ao menos 1 ponto de atendimento para calcular a rota.");
@@ -685,11 +732,66 @@ async function solicitarOtimizacaoRota() {
     salvar: false,
   };
 
-  if (usarCursorOrigem) {
+  if (valorOrigem === "__gps__") {
+    let coordGPS = ultimaPosicaoGPS;
+    if (!coordGPS && navigator.geolocation) {
+      coordGPS = await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) =>
+            resolve({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }),
+          () => resolve(null),
+          { timeout: 5000 }
+        );
+      });
+      if (coordGPS) {
+        ultimaPosicaoGPS = coordGPS;
+        markerCursor.setLatLng([coordGPS.lat, coordGPS.lng]);
+        atualizarTextoCoordenadaCursor();
+      }
+    }
+
+    const coordFinal = coordGPS || posOrigem;
     payload.origem = {
-      nome: "Ponto de Partida (Marcador)",
+      nome: "Minha Localização Atual",
+      latitude: coordFinal.lat,
+      longitude: coordFinal.lng,
+    };
+  } else if (valorOrigem === "__cursor__") {
+    payload.origem = {
+      nome: "Ponto de Partida (Marcador no Mapa)",
       latitude: posOrigem.lat,
       longitude: posOrigem.lng,
+    };
+  } else {
+    const pontoOrigem = pontosAtuais.find((p) => String(p.id) === String(valorOrigem));
+    const latlngOrigem = obterLatLngDoPonto(pontoOrigem);
+    if (!pontoOrigem || !latlngOrigem) {
+      mostrarToast("O ponto de origem selecionado não é válido.");
+      return;
+    }
+
+    pontosIds = [
+      pontoOrigem.id,
+      ...pontosIds.filter((id) => String(id) !== String(pontoOrigem.id)),
+    ];
+    payload.pontosIds = pontosIds;
+
+    if (pontosIds.length < 2) {
+      mostrarToast("Selecione ao menos mais 1 parada além do ponto de partida.");
+      return;
+    }
+
+    payload.origem = {
+      id: pontoOrigem.id,
+      nome: pontoOrigem.nome,
+      endereco: pontoOrigem.endereco || "",
+      tipo: pontoOrigem.tipo || "Origem",
+      prioridade: pontoOrigem.prioridade || "alta",
+      latitude: latlngOrigem[0],
+      longitude: latlngOrigem[1],
     };
   }
 
