@@ -689,6 +689,165 @@ document
   .getElementById("btnOtimizarRota")
   ?.addEventListener("click", solicitarOtimizacaoRota);
 
+// 10. Renderização Vetorial Multicamadas (Hierarquia Z-Index da Especificação Visual)
+function limparCamadasDeRota() {
+  grupoMalha.clearLayers();
+  grupoRotaAlternativa.clearLayers();
+  grupoRotaAtiva.clearLayers();
+  document.getElementById("painelMetricasRota")?.classList.add("hidden");
+}
+
+function renderizarRotaOtimizadaNoMapa(dados) {
+  grupoMalha.clearLayers();
+  grupoRotaAlternativa.clearLayers();
+  grupoRotaAtiva.clearLayers();
+
+  const mostrarMalha = document.getElementById("chkMostrarMalha")?.checked ?? true;
+  const mostrarAlternativa =
+    document.getElementById("chkMostrarAlternativa")?.checked ?? true;
+
+  // Camada 2: Malha de Triangulação (PostGIS ST_DelaunayTriangles + Atalhos CCH) — #0EA5E9
+  if (mostrarMalha && dados.malha_triangulacao) {
+    L.geoJSON(dados.malha_triangulacao, {
+      pane: "paneMalha",
+      style: (feature) => ({
+        color: "#0ea5e9",
+        weight: feature?.properties?.tipo === "atalho_cch" ? 2.2 : 1.5,
+        opacity: 0.45,
+        dashArray: feature?.properties?.tipo === "atalho_cch" ? "4 4" : null,
+      }),
+    }).addTo(grupoMalha);
+  }
+
+  // Camada 3: Rota Alternativa / Ordem Não-Otimizada — #64748B tracejada
+  if (
+    mostrarAlternativa &&
+    dados.trajeto_alternativo &&
+    Array.isArray(dados.trajeto_alternativo.coordinates)
+  ) {
+    const latlngsAlt = dados.trajeto_alternativo.coordinates.map(([lng, lat]) => [
+      lat,
+      lng,
+    ]);
+    L.polyline(latlngsAlt, {
+      pane: "paneRotaAlternativa",
+      color: "#64748b",
+      weight: 3.5,
+      opacity: 0.7,
+      dashArray: "6 6",
+    }).addTo(grupoRotaAlternativa);
+  }
+
+  // Camada 4: Rota Principal Otimizada (#2563EB) com Halo/Contorno de Contraste Branco
+  if (dados.trajeto && Array.isArray(dados.trajeto.coordinates)) {
+    const latlngsRota = dados.trajeto.coordinates.map(([lng, lat]) => [lat, lng]);
+
+    // Halo de contraste (Seção 3.2 e 5.2 da Especificação Visual)
+    L.polyline(latlngsRota, {
+      pane: "paneRotaAtiva",
+      color: "#ffffff",
+      weight: 9,
+      opacity: 0.85,
+      lineCap: "round",
+      lineJoin: "round",
+    }).addTo(grupoRotaAtiva);
+
+    // Traço principal ativo (#2563EB)
+    const linhaPrincipal = L.polyline(latlngsRota, {
+      pane: "paneRotaAtiva",
+      color: "#2563eb",
+      weight: 5.5,
+      opacity: 1.0,
+      lineCap: "round",
+      lineJoin: "round",
+    }).addTo(grupoRotaAtiva);
+
+    map.fitBounds(linhaPrincipal.getBounds(), { padding: [55, 55] });
+  }
+
+  // Camada 5: Marcadores Acessíveis WCAG 2.1 AA (Origem ▶, Waypoints 1..N, Destino 🏁)
+  if (Array.isArray(dados.paradas)) {
+    dados.paradas.forEach((parada, idx) => {
+      if (!Array.isArray(parada.coordinates)) return;
+      const [lng, lat] = parada.coordinates;
+      const ehOrigem = idx === 0;
+      const ehDestino = idx === dados.paradas.length - 1 && dados.paradas.length > 1;
+
+      let htmlMarcador;
+      if (ehOrigem) {
+        htmlMarcador = `<div class="marker-origin" title="Origem: ${parada.nome}">▶</div>`;
+      } else if (ehDestino) {
+        htmlMarcador = `<div class="marker-destination" title="Destino: ${parada.nome}">🏁</div>`;
+      } else {
+        htmlMarcador = `<div class="marker-waypoint" title="${parada.ordem}ª Parada: ${parada.nome}">${parada.ordem}</div>`;
+      }
+
+      const icone = L.divIcon({
+        className: "custom-div-icon",
+        html: htmlMarcador,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+
+      L.marker([lat, lng], {
+        icon: icone,
+        pane: "paneMarcadores",
+      })
+        .bindPopup(
+          `<div class="popup-card"><h4>${parada.ordem}ª Parada — ${parada.nome}</h4><p>${
+            parada.endereco || ""
+          }</p></div>`
+        )
+        .addTo(grupoRotaAtiva);
+    });
+  }
+
+  // Atualização do Painel de Telemetria
+  const painel = document.getElementById("painelMetricasRota");
+  if (painel) {
+    painel.classList.remove("hidden");
+    const distKm = ((dados.distancia_metros || 0) / 1000).toFixed(2).replace(".", ",");
+    const durMin = Math.max(1, Math.round((dados.duracao_segundos || 0) / 60));
+    const econM = Math.round(dados.economia_metros || 0);
+    const atalhos =
+      dados.algoritmo?.atalhosCriadosCCH ??
+      dados.algoritmo?.arestasMalhaBase ??
+      0;
+
+    document.getElementById("metricaDistancia").textContent = `${distKm} km`;
+    document.getElementById("metricaDuracao").textContent = `${durMin} min`;
+    document.getElementById("metricaEconomia").textContent = `${econM} m`;
+    document.getElementById("metricaAtalhosCCH").textContent = String(atalhos);
+
+    const listaSeq = document.getElementById("listaSequenciaParadas");
+    if (listaSeq && Array.isArray(dados.paradas)) {
+      listaSeq.innerHTML = "";
+      dados.paradas.forEach((p) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span class="seq-badge">${p.ordem}</span>
+          <span>${p.nome}</span>
+        `;
+        listaSeq.appendChild(li);
+      });
+    }
+  }
+}
+
+document.getElementById("chkMostrarMalha")?.addEventListener("change", () => {
+  if (ultimaRotaCalculada) renderizarRotaOtimizadaNoMapa(ultimaRotaCalculada);
+});
+
+document.getElementById("chkMostrarAlternativa")?.addEventListener("change", () => {
+  if (ultimaRotaCalculada) renderizarRotaOtimizadaNoMapa(ultimaRotaCalculada);
+});
+
+document.getElementById("btnLimparRota")?.addEventListener("click", () => {
+  ultimaRotaCalculada = null;
+  limparCamadasDeRota();
+  mostrarToast("Camadas de rota limpas do mapa.");
+});
+
 localizarUsuario();
 carregarPontosPorAreaVisivel();
 
