@@ -54,12 +54,13 @@ export function construirHierarquiaTopologicaCCH(nos, arestasBase) {
     }
   }
 
-  // Garante conectividade da malha caso colinear ou com poucos pontos (<= 3)
+  // Garante que o grafo de contração contenha todas as conexões de suporte viário
+  // enquanto preserva arestasOriginais (Delaunay) para a camada visual da malha
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
-      if (adj[i].size < 2 || n <= 4) {
-        adj[i].add(j);
-        adj[j].add(i);
+      adj[i].add(j);
+      adj[j].add(i);
+      if (arestasOriginais.size === 0 || n <= 3) {
         arestasOriginais.add(chaveAresta(i, j));
       }
     }
@@ -301,7 +302,14 @@ export function otimizarSequenciaComCCH({
     if (i !== indiceFimFixo) intermediarios.push(i);
   }
 
-  // Construção gulosa inicial guiada pelos custos CCH e prioridade
+  // Construção gulosa inicial guiada pelos custos reais CCH
+  // (A prioridade desempata paradas próximas em até 15%, sem mandar ir a outra cidade distante antes de concluir a cidade atual)
+  const PESO_SUAVE_PRIORIDADE = {
+    alta: 0.88,
+    normal: 1.0,
+    baixa: 1.12,
+  };
+
   const visitados = new Set([0]);
   const rotaIndices = [0];
   let atual = 0;
@@ -313,7 +321,9 @@ export function otimizarSequenciaComCCH({
     for (const candidato of intermediarios) {
       if (!visitados.has(candidato)) {
         const fatorPrioridade =
-          PESO_PRIORIDADE[nos[candidato].prioridade || "normal"] ?? 1.0;
+          criterio === "prioridade"
+            ? PESO_SUAVE_PRIORIDADE[nos[candidato].prioridade || "normal"] ?? 1.0
+            : 1.0;
         const custo = matrizCCH[atual][candidato] * fatorPrioridade;
         if (custo < melhorCusto) {
           melhorCusto = custo;

@@ -775,25 +775,86 @@ function renderizarRotaOtimizadaNoMapa(dados) {
     }).addTo(grupoRotaAlternativa);
   }
 
-  // Camada 4: Rota Principal Otimizada (#2563EB) com Halo/Contorno de Contraste Branco
-  if (dados.trajeto && Array.isArray(dados.trajeto.coordinates)) {
+  // Camada 4: Rota Principal Otimizada (#2563EB) com Halo Branco e Setas Direcionais por Trecho (1->2, 2->3...)
+  if (Array.isArray(dados.trechos) && dados.trechos.length > 0) {
+    const todosPontosRota = [];
+
+    dados.trechos.forEach((trecho) => {
+      const latlngsTrecho = trecho.coordinates.map(([lng, lat]) => [lat, lng]);
+      todosPontosRota.push(...latlngsTrecho);
+
+      // Halo branco de contraste
+      L.polyline(latlngsTrecho, {
+        pane: "paneRotaAtiva",
+        color: "#ffffff",
+        weight: 8,
+        opacity: 0.85,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(grupoRotaAtiva);
+
+      // Linha principal do trecho (de_ordem -> para_ordem)
+      const linhaTrecho = L.polyline(latlngsTrecho, {
+        pane: "paneRotaAtiva",
+        color: "#2563eb",
+        weight: 5,
+        opacity: 1.0,
+        lineCap: "round",
+        lineJoin: "round",
+      }).addTo(grupoRotaAtiva);
+
+      const distTrechoKm = ((trecho.distancia_metros || 0) / 1000)
+        .toFixed(2)
+        .replace(".", ",");
+      linhaTrecho.bindTooltip(
+        `Trecho ${trecho.de_ordem} → ${trecho.para_ordem} (${distTrechoKm} km)`,
+        { sticky: true }
+      );
+
+      // Adiciona seta direcional no meio do trecho indicando o sentido (de_ordem -> para_ordem)
+      if (latlngsTrecho.length >= 2) {
+        const meioIdx = Math.floor(latlngsTrecho.length / 2);
+        const p1 = latlngsTrecho[Math.max(0, meioIdx - 1)];
+        const p2 = latlngsTrecho[Math.min(latlngsTrecho.length - 1, meioIdx)];
+        const anguloGraus =
+          (Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180) / Math.PI;
+
+        const iconeSeta = L.divIcon({
+          className: "custom-div-icon",
+          html: `<div class="route-direction-arrow" style="transform: rotate(${anguloGraus.toFixed(
+            1
+          )}deg);" title="Sentido: ${trecho.de_ordem} → ${trecho.para_ordem}">▲</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
+
+        L.marker(p2, {
+          icon: iconeSeta,
+          pane: "paneRotaAtiva",
+          interactive: false,
+        }).addTo(grupoRotaAtiva);
+      }
+    });
+
+    if (todosPontosRota.length > 0) {
+      map.fitBounds(L.latLngBounds(todosPontosRota), { padding: [55, 55] });
+    }
+  } else if (dados.trajeto && Array.isArray(dados.trajeto.coordinates)) {
     const latlngsRota = dados.trajeto.coordinates.map(([lng, lat]) => [lat, lng]);
 
-    // Halo de contraste (Seção 3.2 e 5.2 da Especificação Visual)
     L.polyline(latlngsRota, {
       pane: "paneRotaAtiva",
       color: "#ffffff",
-      weight: 9,
+      weight: 8,
       opacity: 0.85,
       lineCap: "round",
       lineJoin: "round",
     }).addTo(grupoRotaAtiva);
 
-    // Traço principal ativo (#2563EB)
     const linhaPrincipal = L.polyline(latlngsRota, {
       pane: "paneRotaAtiva",
       color: "#2563eb",
-      weight: 5.5,
+      weight: 5,
       opacity: 1.0,
       lineCap: "round",
       lineJoin: "round",

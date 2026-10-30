@@ -55,43 +55,64 @@ async function consultarMatrizOSRM(nos, criterio) {
 }
 
 async function consultarTrajetoViarioOSRM(coordenadasOrdenadas) {
-  const coordsStr = coordenadasOrdenadas
-    .map((c) => `${c[0]},${c[1]}`)
-    .join(";");
-
-  try {
-    const url = `${OSRM_BASE_URL}/route/v1/driving/${coordsStr}?overview=full&geometries=geojson&steps=false`;
-    const resp = await fetch(url);
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.code === "Ok" && data.routes && data.routes.length > 0) {
-        const rota = data.routes[0];
-        return {
-          geometria: rota.geometry,
-          distancia_metros: Math.round(rota.distance),
-          duracao_segundos: Math.round(rota.duration),
-        };
-      }
-    }
-  } catch {
-    // Fallback geodésico caso serviço externo OSRM esteja indisponível
-  }
-
+  const coordenadasTotais = [];
+  const trechos = [];
   let distanciaTotal = 0;
+  let duracaoTotal = 0;
+
+  // Calcula trecho a trecho (1->2, 2->3, 3->4...) de forma independente
+  // evitando que o OSRM force retornos/rotatórias artificiais (continue_straight) entre paradas
   for (let i = 0; i < coordenadasOrdenadas.length - 1; i++) {
-    distanciaTotal += calcularDistanciaHaversine(
-      coordenadasOrdenadas[i],
-      coordenadasOrdenadas[i + 1]
-    );
+    const origem = coordenadasOrdenadas[i];
+    const destino = coordenadasOrdenadas[i + 1];
+    const parStr = `${origem[0]},${origem[1]};${destino[0]},${destino[1]}`;
+
+    let trechoCoords = [origem, destino];
+    let distTrecho = calcularDistanciaHaversine(origem, destino);
+    let durTrecho = distTrecho / 11.1;
+
+    try {
+      const url = `${OSRM_BASE_URL}/route/v1/driving/${parStr}?overview=full&geometries=geojson&continue_straight=false`;
+      const resp = await fetch(url);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.code === "Ok" && data.routes && data.routes.length > 0) {
+          const rotaTrecho = data.routes[0];
+          trechoCoords = rotaTrecho.geometry.coordinates;
+          distTrecho = rotaTrecho.distance;
+          durTrecho = rotaTrecho.duration;
+        }
+      }
+    } catch {
+      // Fallback em linha reta caso o OSRM falhe no trecho
+    }
+
+    distanciaTotal += distTrecho;
+    duracaoTotal += durTrecho;
+
+    trechos.push({
+      de_ordem: i + 1,
+      para_ordem: i + 2,
+      distancia_metros: Math.round(distTrecho),
+      duracao_segundos: Math.round(durTrecho),
+      coordinates: trechoCoords,
+    });
+
+    if (i === 0) {
+      coordenadasTotais.push(...trechoCoords);
+    } else {
+      coordenadasTotais.push(...trechoCoords.slice(1));
+    }
   }
 
   return {
     geometria: {
       type: "LineString",
-      coordinates: coordenadasOrdenadas,
+      coordinates: coordenadasTotais,
     },
+    trechos,
     distancia_metros: Math.round(distanciaTotal),
-    duracao_segundos: Math.round(distanciaTotal / 11.1),
+    duracao_segundos: Math.round(duracaoTotal),
   };
 }
 
@@ -279,6 +300,7 @@ export async function calcularMelhorRota(req, res) {
         trajetoOriginal.distancia_metros - trajetoOtimizado.distancia_metros
       ),
       paradas: paradasOrdenadas,
+      trechos: trajetoOtimizado.trechos,
       trajeto: trajetoOtimizado.geometria,
       trajeto_alternativo: trajetoOriginal.geometria,
       malha_triangulacao: resultadoCCH.arestasMalhaGeoJSON,
