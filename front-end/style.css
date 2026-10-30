@@ -108,14 +108,20 @@ body {
 .brand-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.6rem 1.05rem;
+  gap: 0.6rem;
+  padding: 0.4rem 0.95rem 0.4rem 0.65rem;
   background: var(--surface-glass-dark);
   color: var(--text-on-primary);
   backdrop-filter: blur(18px);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-floating);
   border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.brand-logo {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .brand-dot {
