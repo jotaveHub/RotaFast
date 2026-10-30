@@ -18,42 +18,54 @@ const map = L.map("map", {
 
 L.control.zoom({ position: "bottomright" }).addTo(map);
 
-// Mapas Base Recomendados pela Especificação Visual (Seção 4)
-const tileCartoLight = L.tileLayer(
-  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  {
-    maxZoom: 20,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  }
-);
-
-const tileCartoDark = L.tileLayer(
-  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-  {
-    maxZoom: 20,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-  }
-);
-
+// Mapas Base 100% gratuitos sem necessidade de API Key (OpenStreetMap + Esri)
 const tileOSM = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 });
 
-tileCartoLight.addTo(map);
+const tileOSMNeutro = L.tileLayer(
+  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 19,
+    className: "map-tiles-neutral",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }
+);
+
+const tileOSMEscuro = L.tileLayer(
+  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 19,
+    className: "map-tiles-dark",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }
+);
+
+const tileEsriSatelite = L.tileLayer(
+  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  {
+    maxZoom: 19,
+    className: "map-tiles-satellite",
+    attribution: "Tiles &copy; Esri",
+  }
+);
+
+tileOSM.addTo(map);
 
 L.control
   .layers(
     {
-      "Carto Positron (Claro Neutro)": tileCartoLight,
-      "Carto Dark Matter (Escuro)": tileCartoDark,
       "OpenStreetMap Padrão": tileOSM,
+      "Mapa Claro Neutro": tileOSMNeutro,
+      "Mapa Tema Escuro": tileOSMEscuro,
+      "Satélite (Esri)": tileEsriSatelite,
     },
     {},
-    { position: "topright" }
+    { position: "bottomright" }
   )
   .addTo(map);
 

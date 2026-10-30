@@ -88,6 +88,19 @@ body {
   z-index: 1;
 }
 
+/* Filtros CSS de Mapa Base (Seção 4 da Especificação Visual) */
+.map-tiles-neutral {
+  filter: saturate(0.25) contrast(1.03) brightness(1.03);
+}
+
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.map-tiles-satellite {
+  filter: brightness(0.75) contrast(1.1);
+}
+
 #topbar {
   position: fixed;
   top: 1rem;
@@ -772,7 +785,7 @@ body {
 /* Legenda de Camadas Vetoriais */
 .map-legend {
   position: fixed;
-  right: 1rem;
+  right: 4.2rem;
   bottom: 1.5rem;
   z-index: 900;
   display: flex;
