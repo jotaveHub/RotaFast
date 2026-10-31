@@ -961,6 +961,31 @@ function renderizarRotaOtimizadaNoMapa(dados) {
       lineJoin: "round",
     }).addTo(grupoRotaAtiva);
 
+    if (latlngsRota.length >= 4) {
+      const passo = Math.max(2, Math.floor(latlngsRota.length / 4));
+      for (let idx = passo; idx < latlngsRota.length - 1; idx += passo) {
+        const p1 = latlngsRota[idx - 1];
+        const p2 = latlngsRota[idx];
+        const anguloGraus =
+          (Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * 180) / Math.PI;
+
+        const iconeSeta = L.divIcon({
+          className: "custom-div-icon",
+          html: `<div class="route-direction-arrow" style="transform: rotate(${anguloGraus.toFixed(
+            1
+          )}deg);" title="Sentido da rota">▲</div>`,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
+
+        L.marker(p2, {
+          icon: iconeSeta,
+          pane: "paneRotaAtiva",
+          interactive: false,
+        }).addTo(grupoRotaAtiva);
+      }
+    }
+
     map.fitBounds(linhaPrincipal.getBounds(), { padding: [55, 55] });
   }
 
@@ -1012,6 +1037,10 @@ function renderizarRotaOtimizadaNoMapa(dados) {
     const distKm = ((dados.distancia_metros || 0) / 1000).toFixed(2).replace(".", ",");
     const durMin = Math.max(1, Math.round((dados.duracao_segundos || 0) / 60));
     const econM = Math.round(dados.economia_metros || 0);
+    const econTexto =
+      econM >= 1000
+        ? `${(econM / 1000).toFixed(2).replace(".", ",")} km`
+        : `${econM} m`;
     const atalhos =
       dados.algoritmo?.atalhosCriadosCCH ??
       dados.algoritmo?.arestasMalhaBase ??
@@ -1019,7 +1048,7 @@ function renderizarRotaOtimizadaNoMapa(dados) {
 
     document.getElementById("metricaDistancia").textContent = `${distKm} km`;
     document.getElementById("metricaDuracao").textContent = `${durMin} min`;
-    document.getElementById("metricaEconomia").textContent = `${econM} m`;
+    document.getElementById("metricaEconomia").textContent = econTexto;
     document.getElementById("metricaAtalhosCCH").textContent = String(atalhos);
 
     const listaSeq = document.getElementById("listaSequenciaParadas");
