@@ -315,6 +315,28 @@ export function otimizarSequenciaComCCH({
     }
   }
 
+  // Matriz de custo viário puro (sem distorção de prioridade) para avaliar o ganho real de deslocamento no 2-Opt
+  let matrizViagem = matrizCCH;
+  if (criterio === "prioridade") {
+    const pesosViagemPura = customizarPesosCCH(
+      hierarquia,
+      nos,
+      matrizCustosBase,
+      "tempo"
+    );
+    matrizViagem = Array.from({ length: n }, () => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        matrizViagem[i][j] = consultarCaminhoMinimoCCH(
+          i,
+          j,
+          hierarquia,
+          pesosViagemPura
+        );
+      }
+    }
+  }
+
   // Índice 0 é sempre a Origem; se temDestinoFixo=true, o último índice (n - 1) é o Destino Final fixo.
   const indiceFimFixo = temDestinoFixo ? n - 1 : -1;
   const intermediarios = [];
@@ -350,22 +372,32 @@ export function otimizarSequenciaComCCH({
     rotaIndices.push(indiceFimFixo);
   }
 
-  // Refinamento 2-Opt sobre a sequência usando a matriz CCH (preservando origem, destino fixo e todos os nós intermediários)
+  // Refinamento 2-Opt com Penalidade Suave na Função Objetivo (Soft Constraint):
+  // Δ_custo = Δ_distância + λ * (penalidade por inversão de prioridade)
   const ORDEM_PRIORIDADE = { alta: 3, normal: 2, baixa: 1 };
-  const podeInverterSegmento = (rota, i, k) => {
-    if (criterio !== "prioridade") return true;
+  let somaTrechosIniciais = 0;
+  for (let idx = 0; idx < rotaIndices.length - 1; idx++) {
+    somaTrechosIniciais += matrizViagem[rotaIndices[idx]][rotaIndices[idx + 1]];
+  }
+  const custoMedioTrecho =
+    rotaIndices.length > 1
+      ? somaTrechosIniciais / (rotaIndices.length - 1)
+      : 0;
+  const lambdaPrioridade = custoMedioTrecho * 0.12;
+
+  const calcularPenalidadePrioridade = (rota, i, k) => {
+    if (criterio !== "prioridade" || lambdaPrioridade <= 0) return 0;
+    let saldoInversao = 0;
     for (let p = i; p < k; p++) {
       const prioP = ORDEM_PRIORIDADE[nos[rota[p]]?.prioridade || "normal"] || 2;
       for (let q = p + 1; q <= k; q++) {
         const prioQ = ORDEM_PRIORIDADE[nos[rota[q]]?.prioridade || "normal"] || 2;
-        // Ao inverter [i..k], o nó em q passará a ser visitado antes do nó em p;
-        // impede que um nó intermediário de menor prioridade passe à frente de um de maior prioridade
-        if (prioQ < prioP) {
-          return false;
-        }
+        // Se prioP > prioQ, inverter [i..k] coloca q (menor prioridade) antes de p (maior prioridade), gerando penalidade positiva;
+        // se prioQ > prioP, inverter [i..k] antecipa um ponto prioritário, gerando bônus negativo
+        saldoInversao += prioP - prioQ;
       }
     }
-    return true;
+    return lambdaPrioridade * saldoInversao;
   };
 
   const limiteFim = temDestinoFixo ? rotaIndices.length - 2 : rotaIndices.length - 1;
@@ -374,9 +406,10 @@ export function otimizarSequenciaComCCH({
     melhorou = false;
     for (let i = 1; i < limiteFim; i++) {
       for (let k = i + 1; k <= limiteFim; k++) {
-        if (!podeInverterSegmento(rotaIndices, i, k)) continue;
-        const ganho = calcularGanho2Opt(rotaIndices, i, k, matrizCCH);
-        if (ganho < -1e-6) {
+        const deltaDistancia = calcularGanho2Opt(rotaIndices, i, k, matrizViagem);
+        const penalidadePrioridade = calcularPenalidadePrioridade(rotaIndices, i, k);
+        const deltaCusto = deltaDistancia + penalidadePrioridade;
+        if (deltaCusto < -1e-6) {
           inverterSegmento(rotaIndices, i, k);
           melhorou = true;
         }
