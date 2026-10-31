@@ -2,21 +2,43 @@ import Ponto from "../model/Ponto.js";
 import sequelize from "../database/sequelize.js";
 import { Op } from "sequelize";
 
+function validarCoordenadas(lng, lat) {
+  if (
+    !Number.isFinite(lng) ||
+    !Number.isFinite(lat) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    throw new Error(
+      "Coordenadas geográficas inválidas: latitude deve estar entre -90 e 90 e longitude entre -180 e 180"
+    );
+  }
+}
+
 function normalizarLocalizacao(dados) {
-  if (dados.localizacao && dados.localizacao.type === "Point" && Array.isArray(dados.localizacao.coordinates)) {
+  if (
+    dados.localizacao &&
+    dados.localizacao.type === "Point" &&
+    Array.isArray(dados.localizacao.coordinates)
+  ) {
+    const lng = Number(dados.localizacao.coordinates[0]);
+    const lat = Number(dados.localizacao.coordinates[1]);
+    validarCoordenadas(lng, lat);
     return {
       type: "Point",
-      coordinates: [
-        Number(dados.localizacao.coordinates[0]),
-        Number(dados.localizacao.coordinates[1]),
-      ],
+      coordinates: [lng, lat],
       crs: { type: "name", properties: { name: "EPSG:4326" } },
     };
   }
   if (dados.latitude !== undefined && dados.longitude !== undefined) {
+    const lng = Number(dados.longitude);
+    const lat = Number(dados.latitude);
+    validarCoordenadas(lng, lat);
     return {
       type: "Point",
-      coordinates: [Number(dados.longitude), Number(dados.latitude)],
+      coordinates: [lng, lat],
       crs: { type: "name", properties: { name: "EPSG:4326" } },
     };
   }
@@ -184,20 +206,29 @@ export async function getPontosProximos(req, res) {
     const lng = Number(req.query.lng ?? req.query.lon ?? req.query.longitude);
     const raio = Number(req.query.raio ?? 2000);
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(raio) || raio <= 0) {
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180 ||
+      !Number.isFinite(raio) ||
+      raio <= 0
+    ) {
       res.status(400).json({
         mensagem: "Informe coordenadas válidas (lat, lng) e um raio positivo em metros",
       });
       return;
     }
 
-    const pontoReferenciaGeog = `ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`;
+    const pontoReferenciaGeog = `ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography`;
     const distanciaLiteral = sequelize.literal(
       `ROUND(ST_Distance("localizacao"::geography, ${pontoReferenciaGeog})::numeric, 2)`
     );
 
     const condicoes = [
-      sequelize.literal(`ST_DWithin("localizacao"::geography, ${pontoReferenciaGeog}, ${raio})`),
+      sequelize.literal(`ST_DWithin("localizacao"::geography, ${pontoReferenciaGeog}, :raio)`),
     ];
 
     if (req.query.status) condicoes.push({ status: req.query.status });
@@ -211,6 +242,7 @@ export async function getPontosProximos(req, res) {
       where: {
         [Op.and]: condicoes,
       },
+      replacements: { lng, lat, raio },
       order: [[distanciaLiteral, "ASC"]],
     });
 
