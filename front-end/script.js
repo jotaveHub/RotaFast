@@ -103,6 +103,15 @@ const ICONES_SVG = {
   destino: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>`,
 };
 
+function escaparHTML(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Marcador arrastável para seleção de coordenada / origem
 const iconeCursor = L.divIcon({
   className: "custom-div-icon",
@@ -321,7 +330,9 @@ function renderizarPontosNoMapaELista(pontos) {
     const classePrioridade = ponto.prioridade === "alta" ? "alta" : "";
     const iconePonto = L.divIcon({
       className: "custom-div-icon",
-      html: `<div class="marker-waypoint ${classePrioridade}" title="${ponto.nome}">${numeroExibicao}</div>`,
+      html: `<div class="marker-waypoint ${classePrioridade}" title="${escaparHTML(
+        ponto.nome
+      )}">${Number(numeroExibicao)}</div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 14],
     });
@@ -334,67 +345,123 @@ function renderizarPontosNoMapaELista(pontos) {
         pane: "paneMarcadores",
       }).addTo(grupoPontos);
 
-      const distHtml =
-        ponto.distancia_metros !== undefined
-          ? `<p><strong>Distância:</strong> ${Number(ponto.distancia_metros).toFixed(0)} m</p>`
-          : "";
+      const popupCard = document.createElement("div");
+      popupCard.className = "popup-card";
 
-      m.bindPopup(`
-        <div class="popup-card">
-          <h4>${ponto.nome}</h4>
-          <p>${ponto.endereco || "Sem endereço informado"}</p>
-          <p>${ponto.descricao || ""}</p>
-          <p><strong>Tipo:</strong> ${ponto.tipo || "Entrega"} | <strong>Prioridade:</strong> ${
+      const h4 = document.createElement("h4");
+      h4.textContent = ponto.nome || "";
+      popupCard.appendChild(h4);
+
+      const pEnd = document.createElement("p");
+      pEnd.textContent = ponto.endereco || "Sem endereço informado";
+      popupCard.appendChild(pEnd);
+
+      if (ponto.descricao) {
+        const pDesc = document.createElement("p");
+        pDesc.textContent = ponto.descricao;
+        popupCard.appendChild(pDesc);
+      }
+
+      const pMeta = document.createElement("p");
+      pMeta.textContent = `Tipo: ${ponto.tipo || "Entrega"} | Prioridade: ${
         ponto.prioridade || "normal"
-      }</p>
-          ${distHtml}
-          <div class="popup-actions">
-            <button type="button" class="btn-popup-edit" onclick="window.prepararEdicaoPonto('${
-              ponto.id
-            }')">Editar</button>
-            <button type="button" class="btn-popup-del" onclick="window.removerPonto('${
-              ponto.id
-            }')">Excluir</button>
-          </div>
-        </div>
-      `);
+      }`;
+      popupCard.appendChild(pMeta);
+
+      if (ponto.distancia_metros !== undefined) {
+        const pDist = document.createElement("p");
+        pDist.textContent = `Distância: ${Number(ponto.distancia_metros).toFixed(0)} m`;
+        popupCard.appendChild(pDist);
+      }
+
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "popup-actions";
+
+      const btnEditPopup = document.createElement("button");
+      btnEditPopup.type = "button";
+      btnEditPopup.className = "btn-popup-edit";
+      btnEditPopup.textContent = "Editar";
+      btnEditPopup.addEventListener("click", () => window.prepararEdicaoPonto(ponto.id));
+
+      const btnDelPopup = document.createElement("button");
+      btnDelPopup.type = "button";
+      btnDelPopup.className = "btn-popup-del";
+      btnDelPopup.textContent = "Excluir";
+      btnDelPopup.addEventListener("click", () => window.removerPonto(ponto.id));
+
+      actionsDiv.append(btnEditPopup, btnDelPopup);
+      popupCard.appendChild(actionsDiv);
+
+      m.bindPopup(popupCard);
     }
 
     if (listaEl) {
       const card = document.createElement("div");
       card.className = "point-item";
-      const badgeDist =
-        ponto.distancia_metros !== undefined
-          ? `<span class="badge badge-dist">${Number(ponto.distancia_metros).toFixed(0)} m</span>`
-          : "";
 
-      card.innerHTML = `
-        <div class="point-info">
-          <h5>${numeroExibicao}. ${ponto.nome}</h5>
-          <p>${ponto.endereco || ponto.descricao || "Coordenada registrada"}</p>
-          <div class="point-badges">
-            <span class="badge badge-${ponto.prioridade || "normal"}">${
-        ponto.prioridade || "normal"
-      }</span>
-            <span class="badge badge-normal">${ponto.tipo || "Entrega"}</span>
-            ${badgeDist}
-          </div>
-        </div>
-        <div class="point-actions">
-          <button type="button" class="action-btn focus" title="Centralizar no mapa" data-focus="${ponto.id}">${ICONES_SVG.foco}</button>
-          <button type="button" class="action-btn edit" title="Editar ponto" onclick="window.prepararEdicaoPonto('${
-            ponto.id
-          }')">${ICONES_SVG.editar}</button>
-          <button type="button" class="action-btn delete" title="Excluir ponto" onclick="window.removerPonto('${
-            ponto.id
-          }')">${ICONES_SVG.excluir}</button>
-        </div>
-      `;
+      const infoDiv = document.createElement("div");
+      infoDiv.className = "point-info";
 
-      card.querySelector("[data-focus]")?.addEventListener("click", () => {
+      const h5 = document.createElement("h5");
+      h5.textContent = `${numeroExibicao}. ${ponto.nome}`;
+
+      const pSub = document.createElement("p");
+      pSub.textContent = ponto.endereco || ponto.descricao || "Coordenada registrada";
+
+      const badgesDiv = document.createElement("div");
+      badgesDiv.className = "point-badges";
+
+      const prioridadeLimpa = ["baixa", "normal", "alta"].includes(ponto.prioridade)
+        ? ponto.prioridade
+        : "normal";
+      const badgePrio = document.createElement("span");
+      badgePrio.className = `badge badge-${prioridadeLimpa}`;
+      badgePrio.textContent = prioridadeLimpa;
+
+      const badgeTipo = document.createElement("span");
+      badgeTipo.className = "badge badge-normal";
+      badgeTipo.textContent = ponto.tipo || "Entrega";
+
+      badgesDiv.append(badgePrio, badgeTipo);
+
+      if (ponto.distancia_metros !== undefined) {
+        const badgeDist = document.createElement("span");
+        badgeDist.className = "badge badge-dist";
+        badgeDist.textContent = `${Number(ponto.distancia_metros).toFixed(0)} m`;
+        badgesDiv.appendChild(badgeDist);
+      }
+
+      infoDiv.append(h5, pSub, badgesDiv);
+
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "point-actions";
+
+      const btnFocus = document.createElement("button");
+      btnFocus.type = "button";
+      btnFocus.className = "action-btn focus";
+      btnFocus.title = "Centralizar no mapa";
+      btnFocus.innerHTML = ICONES_SVG.foco;
+      btnFocus.addEventListener("click", () => {
         map.setView(latlng, 16);
         if (m) m.openPopup();
       });
+
+      const btnEdit = document.createElement("button");
+      btnEdit.type = "button";
+      btnEdit.className = "action-btn edit";
+      btnEdit.title = "Editar ponto";
+      btnEdit.innerHTML = ICONES_SVG.editar;
+      btnEdit.addEventListener("click", () => window.prepararEdicaoPonto(ponto.id));
+
+      const btnDel = document.createElement("button");
+      btnDel.type = "button";
+      btnDel.className = "action-btn delete";
+      btnDel.title = "Excluir ponto";
+      btnDel.innerHTML = ICONES_SVG.excluir;
+      btnDel.addEventListener("click", () => window.removerPonto(ponto.id));
+
+      actionsDiv.append(btnFocus, btnEdit, btnDel);
+      card.append(infoDiv, actionsDiv);
 
       listaEl.appendChild(card);
     }
@@ -666,16 +733,22 @@ function atualizarChecklistParadas() {
     label.className = "checkbox-label";
     label.style.padding = "0.3rem 0.4rem";
 
-    const checked = idsSelecionadosRota.has(ponto.id) ? "checked" : "";
-    label.innerHTML = `
-      <input type="checkbox" value="${ponto.id}" ${checked} />
-      <span>${ponto.nome} <small style="color: var(--text-muted);">(${
-      ponto.prioridade || "normal"
-    })</small></span>
-    `;
+    const chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.value = String(ponto.id);
+    chk.checked = idsSelecionadosRota.has(ponto.id);
 
-    const chk = label.querySelector("input");
-    chk?.addEventListener("change", () => {
+    const spanTexto = document.createElement("span");
+    spanTexto.textContent = `${ponto.nome} `;
+
+    const smallPrio = document.createElement("small");
+    smallPrio.style.color = "var(--text-muted)";
+    smallPrio.textContent = `(${ponto.prioridade || "normal"})`;
+
+    spanTexto.appendChild(smallPrio);
+    label.append(chk, spanTexto);
+
+    chk.addEventListener("change", () => {
       if (chk.checked) {
         idsSelecionadosRota.add(ponto.id);
       } else {
@@ -999,12 +1072,14 @@ function renderizarRotaOtimizadaNoMapa(dados) {
       const classePrioridade = parada.prioridade === "alta" ? "alta" : "";
 
       let htmlMarcador;
+      const nomeParadaSeguro = escaparHTML(parada.nome);
+      const ordemSegura = Number(parada.ordem);
       if (ehOrigem) {
-        htmlMarcador = `<div class="marker-origin" title="${parada.ordem}ª Parada (Origem): ${parada.nome}"><span>${parada.ordem}</span></div>`;
+        htmlMarcador = `<div class="marker-origin" title="${ordemSegura}ª Parada (Origem): ${nomeParadaSeguro}"><span>${ordemSegura}</span></div>`;
       } else if (ehDestino) {
-        htmlMarcador = `<div class="marker-destination" title="${parada.ordem}ª Parada (Destino Final): ${parada.nome}"><span>${parada.ordem}</span></div>`;
+        htmlMarcador = `<div class="marker-destination" title="${ordemSegura}ª Parada (Destino Final): ${nomeParadaSeguro}"><span>${ordemSegura}</span></div>`;
       } else {
-        htmlMarcador = `<div class="marker-waypoint ${classePrioridade}" title="${parada.ordem}ª Parada: ${parada.nome}">${parada.ordem}</div>`;
+        htmlMarcador = `<div class="marker-waypoint ${classePrioridade}" title="${ordemSegura}ª Parada: ${nomeParadaSeguro}">${ordemSegura}</div>`;
       }
 
       const icone = L.divIcon({
@@ -1014,15 +1089,19 @@ function renderizarRotaOtimizadaNoMapa(dados) {
         iconAnchor: [16, 16],
       });
 
+      const popupParada = document.createElement("div");
+      popupParada.className = "popup-card";
+      const h4Parada = document.createElement("h4");
+      h4Parada.textContent = `${ordemSegura}ª Parada — ${parada.nome || ""}`;
+      const pEndParada = document.createElement("p");
+      pEndParada.textContent = parada.endereco || "";
+      popupParada.append(h4Parada, pEndParada);
+
       L.marker([lat, lng], {
         icon: icone,
         pane: "paneMarcadores",
       })
-        .bindPopup(
-          `<div class="popup-card"><h4>${parada.ordem}ª Parada — ${parada.nome}</h4><p>${
-            parada.endereco || ""
-          }</p></div>`
-        )
+        .bindPopup(popupParada)
         .addTo(grupoRotaAtiva);
     });
   }
@@ -1065,10 +1144,15 @@ function renderizarRotaOtimizadaNoMapa(dados) {
 
         const li = document.createElement("li");
         li.style.cursor = "pointer";
-        li.innerHTML = `
-          <span class="${classeBadge}">${p.ordem}</span>
-          <span>${p.nome}</span>
-        `;
+
+        const spanOrdem = document.createElement("span");
+        spanOrdem.className = classeBadge;
+        spanOrdem.textContent = String(p.ordem);
+
+        const spanNome = document.createElement("span");
+        spanNome.textContent = p.nome || "";
+
+        li.append(spanOrdem, spanNome);
         li.addEventListener("click", () => {
           if (Array.isArray(p.coordinates)) {
             map.setView([p.coordinates[1], p.coordinates[0]], 16);
@@ -1120,16 +1204,37 @@ async function carregarRotasSalvas() {
 
       const card = document.createElement("div");
       card.className = "point-item";
-      card.innerHTML = `
-        <div class="point-info">
-          <h5>${rota.nome}</h5>
-          <p>${qtdParadas} paradas • ${distKm} km • ~${durMin} min</p>
-        </div>
-        <div class="point-actions">
-          <button type="button" class="action-btn focus" title="Desenhar rota no mapa" onclick="window.visualizarRotaSalva('${rota.id}')">${ICONES_SVG.mapa}</button>
-          <button type="button" class="action-btn delete" title="Excluir rota" onclick="window.excluirRotaSalva('${rota.id}')">${ICONES_SVG.excluir}</button>
-        </div>
-      `;
+
+      const infoDiv = document.createElement("div");
+      infoDiv.className = "point-info";
+
+      const h5 = document.createElement("h5");
+      h5.textContent = rota.nome || "Rota Planejada";
+
+      const pResumo = document.createElement("p");
+      pResumo.textContent = `${qtdParadas} paradas • ${distKm} km • ~${durMin} min`;
+
+      infoDiv.append(h5, pResumo);
+
+      const actionsDiv = document.createElement("div");
+      actionsDiv.className = "point-actions";
+
+      const btnVer = document.createElement("button");
+      btnVer.type = "button";
+      btnVer.className = "action-btn focus";
+      btnVer.title = "Desenhar rota no mapa";
+      btnVer.innerHTML = ICONES_SVG.mapa;
+      btnVer.addEventListener("click", () => window.visualizarRotaSalva(rota.id));
+
+      const btnDel = document.createElement("button");
+      btnDel.type = "button";
+      btnDel.className = "action-btn delete";
+      btnDel.title = "Excluir rota";
+      btnDel.innerHTML = ICONES_SVG.excluir;
+      btnDel.addEventListener("click", () => window.excluirRotaSalva(rota.id));
+
+      actionsDiv.append(btnVer, btnDel);
+      card.append(infoDiv, actionsDiv);
       container.appendChild(card);
     });
   } catch {
