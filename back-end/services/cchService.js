@@ -350,13 +350,22 @@ export function otimizarSequenciaComCCH({
     rotaIndices.push(indiceFimFixo);
   }
 
-  // Refinamento 2-Opt sobre a sequência usando a matriz CCH (preservando origem, destino fixo e hierarquia de prioridade)
+  // Refinamento 2-Opt sobre a sequência usando a matriz CCH (preservando origem, destino fixo e todos os nós intermediários)
   const ORDEM_PRIORIDADE = { alta: 3, normal: 2, baixa: 1 };
   const podeInverterSegmento = (rota, i, k) => {
     if (criterio !== "prioridade") return true;
-    const prioInicio = ORDEM_PRIORIDADE[nos[rota[i]]?.prioridade || "normal"] || 2;
-    const prioFim = ORDEM_PRIORIDADE[nos[rota[k]]?.prioridade || "normal"] || 2;
-    return prioFim >= prioInicio;
+    for (let p = i; p < k; p++) {
+      const prioP = ORDEM_PRIORIDADE[nos[rota[p]]?.prioridade || "normal"] || 2;
+      for (let q = p + 1; q <= k; q++) {
+        const prioQ = ORDEM_PRIORIDADE[nos[rota[q]]?.prioridade || "normal"] || 2;
+        // Ao inverter [i..k], o nó em q passará a ser visitado antes do nó em p;
+        // impede que um nó intermediário de menor prioridade passe à frente de um de maior prioridade
+        if (prioQ < prioP) {
+          return false;
+        }
+      }
+    }
+    return true;
   };
 
   const limiteFim = temDestinoFixo ? rotaIndices.length - 2 : rotaIndices.length - 1;
