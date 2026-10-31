@@ -12,9 +12,9 @@
  */
 
 const PESO_PRIORIDADE = {
-  alta: 0.75,
+  alta: 0.85,
   normal: 1.0,
-  baixa: 1.25,
+  baixa: 1.15,
 };
 
 /**
@@ -54,14 +54,26 @@ export function construirHierarquiaTopologicaCCH(nos, arestasBase) {
     }
   }
 
-  // Garante que o grafo de contração contenha todas as conexões de suporte viário
-  // enquanto preserva arestasOriginais (Delaunay) para a camada visual da malha
+  // Caso não haja arestas vindas do PostGIS ou algum vértice esteja isolado,
+  // conecta cada vértice sem grau aos seus 2 vizinhos mais próximos (mantendo a malha esparsa)
   for (let i = 0; i < n; i++) {
-    for (let j = i + 1; j < n; j++) {
-      adj[i].add(j);
-      adj[j].add(i);
-      if (arestasOriginais.size === 0 || n <= 3) {
-        arestasOriginais.add(chaveAresta(i, j));
+    if (adj[i].size === 0 && n > 1) {
+      const dists = [];
+      for (let j = 0; j < n; j++) {
+        if (i !== j) {
+          dists.push({
+            idx: j,
+            d: calcularDistanciaHaversine(nos[i].coordinates, nos[j].coordinates),
+          });
+        }
+      }
+      dists.sort((a, b) => a.d - b.d);
+      const limiteVizinhos = Math.min(2, dists.length);
+      for (let k = 0; k < limiteVizinhos; k++) {
+        const viz = dists[k].idx;
+        adj[i].add(viz);
+        adj[viz].add(i);
+        arestasOriginais.add(chaveAresta(i, viz));
       }
     }
   }
@@ -71,7 +83,9 @@ export function construirHierarquiaTopologicaCCH(nos, arestasBase) {
   const rank = new Array(n).fill(0);
   const triangulosInferiores = [];
   const atalhosCriados = [];
+  const chavesAtalhos = new Set();
 
+  // Inicia o grafo simbólico apenas com a malha esparsa (Delaunay) para descobrir os atalhos CCH reais
   const adjSimbolico = adj.map((vizinhos) => new Set(vizinhos));
 
   for (let passo = 0; passo < n; passo++) {
@@ -80,7 +94,7 @@ export function construirHierarquiaTopologicaCCH(nos, arestasBase) {
 
     for (let v = 0; v < n; v++) {
       if (!contraido[v]) {
-        const grauAtual = adjSimbolico[v].size;
+        const grauAtual = Array.from(adjSimbolico[v]).filter((u) => !contraido[u]).length;
         if (grauAtual < menorGrau) {
           menorGrau = grauAtual;
           melhorNo = v;
@@ -101,17 +115,23 @@ export function construirHierarquiaTopologicaCCH(nos, arestasBase) {
       for (let j = i + 1; j < vizinhosSuperiores.length; j++) {
         const u = vizinhosSuperiores[i];
         const w = vizinhosSuperiores[j];
-        const ehAtalhoNovo = !adjSimbolico[u].has(w) && !arestasOriginais.has(chaveAresta(u, w));
+        const chaveUW = chaveAresta(u, w);
+        const ehAtalhoNovo =
+          !adjSimbolico[u].has(w) &&
+          !arestasOriginais.has(chaveUW) &&
+          !chavesAtalhos.has(chaveUW);
 
         adjSimbolico[u].add(w);
         adjSimbolico[w].add(u);
         adj[u].add(w);
+        adj[w].add(u);
         adj[v].add(u);
         adj[u].add(v);
         adj[v].add(w);
         adj[w].add(v);
 
         if (ehAtalhoNovo) {
+          chavesAtalhos.add(chaveUW);
           atalhosCriados.push([u, w]);
         }
 
@@ -120,11 +140,11 @@ export function construirHierarquiaTopologicaCCH(nos, arestasBase) {
     }
   }
 
-  // Constrói o grafo direcionado ascendente (Upward Graph G^) onde rank[u] < rank[w]
+  // Garante conectividade completa no grafo direcionado ascendente (Upward Graph G^)
   const adjSuperior = Array.from({ length: n }, () => []);
   for (let u = 0; u < n; u++) {
-    for (const w of adj[u]) {
-      if (rank[u] < rank[w]) {
+    for (let w = 0; w < n; w++) {
+      if (u !== w && rank[u] < rank[w]) {
         adjSuperior[u].push(w);
       }
     }
@@ -302,14 +322,7 @@ export function otimizarSequenciaComCCH({
     if (i !== indiceFimFixo) intermediarios.push(i);
   }
 
-  // Construção gulosa inicial guiada pelos custos reais CCH
-  // (A prioridade desempata paradas próximas em até 15%, sem mandar ir a outra cidade distante antes de concluir a cidade atual)
-  const PESO_SUAVE_PRIORIDADE = {
-    alta: 0.88,
-    normal: 1.0,
-    baixa: 1.12,
-  };
-
+  // Construção gulosa inicial guiada pelos custos customizados na Fase 2 do CCH
   const visitados = new Set([0]);
   const rotaIndices = [0];
   let atual = 0;
@@ -320,11 +333,7 @@ export function otimizarSequenciaComCCH({
 
     for (const candidato of intermediarios) {
       if (!visitados.has(candidato)) {
-        const fatorPrioridade =
-          criterio === "prioridade"
-            ? PESO_SUAVE_PRIORIDADE[nos[candidato].prioridade || "normal"] ?? 1.0
-            : 1.0;
-        const custo = matrizCCH[atual][candidato] * fatorPrioridade;
+        const custo = matrizCCH[atual][candidato];
         if (custo < melhorCusto) {
           melhorCusto = custo;
           melhorProximo = candidato;
@@ -341,13 +350,22 @@ export function otimizarSequenciaComCCH({
     rotaIndices.push(indiceFimFixo);
   }
 
-  // Refinamento 2-Opt sobre a sequência usando a matriz CCH (preservando origem e destino fixo)
+  // Refinamento 2-Opt sobre a sequência usando a matriz CCH (preservando origem, destino fixo e hierarquia de prioridade)
+  const ORDEM_PRIORIDADE = { alta: 3, normal: 2, baixa: 1 };
+  const podeInverterSegmento = (rota, i, k) => {
+    if (criterio !== "prioridade") return true;
+    const prioInicio = ORDEM_PRIORIDADE[nos[rota[i]]?.prioridade || "normal"] || 2;
+    const prioFim = ORDEM_PRIORIDADE[nos[rota[k]]?.prioridade || "normal"] || 2;
+    return prioFim >= prioInicio;
+  };
+
   const limiteFim = temDestinoFixo ? rotaIndices.length - 2 : rotaIndices.length - 1;
   let melhorou = true;
   while (melhorou) {
     melhorou = false;
     for (let i = 1; i < limiteFim; i++) {
       for (let k = i + 1; k <= limiteFim; k++) {
+        if (!podeInverterSegmento(rotaIndices, i, k)) continue;
         const ganho = calcularGanho2Opt(rotaIndices, i, k, matrizCCH);
         if (ganho < -1e-6) {
           inverterSegmento(rotaIndices, i, k);
