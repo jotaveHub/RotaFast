@@ -284,6 +284,7 @@ let pontosAtuais = [];
 let ultimaRotaCalculada = null;
 const idsSelecionadosRota = new Set();
 let debounceAreaTimer = null;
+let abortControllerPontos = null;
 
 function obterLatLngDoPonto(ponto) {
   if (ponto?.localizacao?.coordinates?.length >= 2) {
@@ -481,6 +482,11 @@ async function carregarPontosPorAreaVisivel() {
     return;
   }
 
+  if (abortControllerPontos) {
+    abortControllerPontos.abort();
+  }
+  abortControllerPontos = new AbortController();
+
   try {
     const bounds = map.getBounds();
     const minLng = bounds.getWest();
@@ -489,12 +495,14 @@ async function carregarPontosPorAreaVisivel() {
     const maxLat = bounds.getNorth();
 
     const resp = await fetch(
-      `${API_BASE}/pontos/area?minLng=${minLng}&minLat=${minLat}&maxLng=${maxLng}&maxLat=${maxLat}`
+      `${API_BASE}/pontos/area?minLng=${minLng}&minLat=${minLat}&maxLng=${maxLng}&maxLat=${maxLat}`,
+      { signal: abortControllerPontos.signal }
     );
     if (!resp.ok) return;
     const dados = await resp.json();
     renderizarPontosNoMapaELista(dados);
-  } catch {
+  } catch (err) {
+    if (err?.name === "AbortError") return;
     // Silencioso caso o back-end esteja reiniciando
   }
 }
@@ -656,14 +664,21 @@ async function carregarPontosPorRaio(raioMetros) {
     badgeModoEl.textContent = `Raio: ${(raioMetros / 1000).toFixed(1)} km`;
   }
 
+  if (abortControllerPontos) {
+    abortControllerPontos.abort();
+  }
+  abortControllerPontos = new AbortController();
+
   try {
     const resp = await fetch(
-      `${API_BASE}/pontos/proximos?lat=${pos.lat}&lng=${pos.lng}&raio=${raioMetros}`
+      `${API_BASE}/pontos/proximos?lat=${pos.lat}&lng=${pos.lng}&raio=${raioMetros}`,
+      { signal: abortControllerPontos.signal }
     );
     if (!resp.ok) return;
     const dados = await resp.json();
     renderizarPontosNoMapaELista(dados);
-  } catch {
+  } catch (err) {
+    if (err?.name === "AbortError") return;
     mostrarToast("Erro ao consultar pontos por raio.");
   }
 }
