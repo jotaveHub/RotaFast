@@ -46,7 +46,7 @@
         <input
           type="text"
           id="localBuscar"
-          placeholder="Buscar endereço ou cidade (Nominatim)..."
+          placeholder="Buscar endereço ou cidade..."
           autocomplete="off"
         />
         <button type="button" id="btnBuscar" title="Buscar endereço">
@@ -58,7 +58,7 @@
 
     <div class="radius-controls">
       <select id="selectRaio" title="Distância da busca por raio (ST_DWithin)">
-        <option value="0">Área Visível (ST_Intersects)</option>
+        <option value="0">Área Visível</option>
         <option value="1000">Raio: 1 km (1.000 m)</option>
         <option value="2000">Raio: 2 km (2.000 m)</option>
         <option value="5000">Raio: 5 km (5.000 m)</option>
@@ -94,7 +94,7 @@
           <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path>
           <circle cx="18" cy="5" r="3"></circle>
         </svg>
-        <span>Otimizar Rota (CCH)</span>
+        <span>Otimizar Rota</span>
       </button>
     </nav>
 
@@ -115,7 +115,7 @@
         </div>
 
         <input type="hidden" id="pontoIdEdicao" value="" />
-        <input type="text" id="campoNome" placeholder="Nome do atendimento (ex: Instalação Solar)" />
+        <input type="text" id="campoNome" placeholder="Nome do atendimento (ex: Entrega Computador)" />
         <input type="text" id="campoEndereco" placeholder="Endereço ou referência" />
         <input type="text" id="campoDescricao" placeholder="Descrição técnica detalhada" />
 
@@ -167,7 +167,6 @@
           </div>
           <div class="header-text">
             <h3>Planejador de Rota</h3>
-            <p>CCH + Triangulação PostGIS + OSRM</p>
           </div>
         </div>
 
@@ -180,17 +179,17 @@
           <option value="__cursor__">Marcador Azul no Mapa (Posição Selecionada)</option>
         </select>
 
-        <label class="field-label" for="campoCriterioCCH">Critério de Customização (Fase 2 do CCH)</label>
+        <label class="field-label" for="campoCriterioCCH">Critério de Customização</label>
         <select id="campoCriterioCCH">
           <option value="prioridade">Prioridade + Tempo Viário (Recomendado)</option>
-          <option value="tempo">Menor Tempo Viário (OSRM + CCH)</option>
-          <option value="distancia">Menor Distância (Geodésica/Viária)</option>
+          <option value="tempo">Menor Tempo Viário</option>
+          <option value="distancia">Menor Distância</option>
         </select>
 
         <div class="layer-toggles">
           <label class="checkbox-label">
             <input type="checkbox" id="chkMostrarMalha" />
-            <span>Exibir Malha de Triangulação & Atalhos CCH</span>
+            <span>Exibir Malha de Triangulação & Atalhos</span>
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="chkMostrarAlternativa" />
@@ -261,15 +260,15 @@
   <div id="legendaMapa" class="map-legend">
     <div class="legend-item">
       <span class="legend-line route-active"></span>
-      <span>Rota Otimizada (#2563EB)</span>
+      <span>Rota Otimizada</span>
     </div>
     <div class="legend-item">
       <span class="legend-line route-alt"></span>
-      <span>Ordem Original (#64748B)</span>
+      <span>Ordem Original</span>
     </div>
     <div class="legend-item">
       <span class="legend-line mesh-edge"></span>
-      <span>Malha PostGIS + CCH (#0EA5E9)</span>
+      <span>Malha PostGIS + CCH</span>
     </div>
     <div class="legend-item">
       <span class="legend-node node-start">
