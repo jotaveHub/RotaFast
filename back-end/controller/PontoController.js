@@ -45,6 +45,16 @@ function normalizarLocalizacao(dados) {
   return dados.localizacao;
 }
 
+function extrairPaginacao(query = {}) {
+  const limit = Math.min(Math.max(1, Number(query.limit) || 200), 500);
+  const page = Math.max(1, Number(query.page) || 1);
+  const offset =
+    query.offset !== undefined
+      ? Math.max(0, Number(query.offset) || 0)
+      : (page - 1) * limit;
+  return { limit, offset, page };
+}
+
 export async function getPontos(req, res) {
   try {
     const filtro = {};
@@ -52,10 +62,16 @@ export async function getPontos(req, res) {
     if (req.query.tipo) filtro.tipo = req.query.tipo;
     if (req.query.prioridade) filtro.prioridade = req.query.prioridade;
 
+    const { limit, offset, page } = extrairPaginacao(req.query);
+
     const pontos = await Ponto.findAll({
       where: filtro,
       order: [["createdAt", "DESC"]],
+      limit,
+      offset,
     });
+    res.set("X-Page", String(page));
+    res.set("X-Limit", String(limit));
     res.status(200).json(pontos);
   } catch (error) {
     res.status(500).json({
@@ -184,13 +200,19 @@ export async function getPontosByArea(req, res) {
     if (req.query.tipo) condicoes.push({ tipo: req.query.tipo });
     if (req.query.prioridade) condicoes.push({ prioridade: req.query.prioridade });
 
+    const { limit, offset, page } = extrairPaginacao(req.query);
+
     const pontos = await Ponto.findAll({
       where: {
         [Op.and]: condicoes,
       },
       order: [["createdAt", "DESC"]],
+      limit,
+      offset,
     });
 
+    res.set("X-Page", String(page));
+    res.set("X-Limit", String(limit));
     res.status(200).json(pontos);
   } catch (error) {
     res.status(500).json({
@@ -235,6 +257,8 @@ export async function getPontosProximos(req, res) {
     if (req.query.tipo) condicoes.push({ tipo: req.query.tipo });
     if (req.query.prioridade) condicoes.push({ prioridade: req.query.prioridade });
 
+    const { limit, offset, page } = extrairPaginacao(req.query);
+
     const pontos = await Ponto.findAll({
       attributes: {
         include: [[distanciaLiteral, "distancia_metros"]],
@@ -244,8 +268,12 @@ export async function getPontosProximos(req, res) {
       },
       replacements: { lng, lat, raio },
       order: [[distanciaLiteral, "ASC"]],
+      limit,
+      offset,
     });
 
+    res.set("X-Page", String(page));
+    res.set("X-Limit", String(limit));
     res.status(200).json(pontos);
   } catch (error) {
     res.status(500).json({
