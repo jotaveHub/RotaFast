@@ -17,9 +17,9 @@
  */
 
 export const PESO_PRIORIDADE = {
-  alta: 0.85,
+  alta: 0.6,
   normal: 1.0,
-  baixa: 1.15,
+  baixa: 1.4,
 };
 
 /**
@@ -43,7 +43,7 @@ export function calcularDistanciaHaversine(coordA, coordB) {
  * Avalia o custo de um trecho direcionado sob a função objetivo unificada:
  * Custo(origem -> destino) = CustoBase(origem, destino) * FatorPrioridade(destino)
  */
-export function calcularCustoObjetivoTrecho(origemIdx, destinoIdx, nos, matrizCustosBase, criterio = "tempo") {
+export function calcularCustoObjetivoTrecho(origemIdx, destinoIdx, nos, matrizCustosBase, criterio = "prioridade_distancia") {
   let custoBase;
   if (
     matrizCustosBase &&
@@ -58,7 +58,12 @@ export function calcularCustoObjetivoTrecho(origemIdx, destinoIdx, nos, matrizCu
     );
   }
 
-  if (criterio === "prioridade") {
+  const aplicaPrioridade =
+    criterio === "prioridade" ||
+    criterio === "prioridade_distancia" ||
+    criterio === "prioridade_tempo";
+
+  if (aplicaPrioridade) {
     const prioridadeDestino = nos[destinoIdx]?.prioridade || "normal";
     const multiplicador = PESO_PRIORIDADE[prioridadeDestino] ?? 1.0;
     return custoBase * multiplicador;

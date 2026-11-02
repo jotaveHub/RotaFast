@@ -46,7 +46,8 @@ function extrairCoordenadas(pontoOuCoord) {
 async function consultarMatrizOSRM(nos, criterio) {
   try {
     const coordsStr = nos.map((n) => `${n.coordinates[0]},${n.coordinates[1]}`).join(";");
-    const anotacao = criterio === "distancia" ? "distance,duration" : "duration,distance";
+    const usaDistancia = criterio === "distancia" || criterio === "prioridade_distancia";
+    const anotacao = usaDistancia ? "distance,duration" : "duration,distance";
     const url = `${OSRM_BASE_URL}/table/v1/driving/${coordsStr}?annotations=${anotacao}`;
 
     const resp = await fetch(url);
@@ -54,7 +55,7 @@ async function consultarMatrizOSRM(nos, criterio) {
     const data = await resp.json();
     if (data.code !== "Ok") return null;
 
-    return criterio === "distancia" ? data.distances : data.durations;
+    return usaDistancia ? data.distances : data.durations;
   } catch {
     return null;
   }

@@ -795,7 +795,7 @@ async function solicitarOtimizacaoRota() {
   const nome =
     document.getElementById("campoNomeRota")?.value?.trim() || "Rota Otimizada CCH";
   const criterio =
-    document.getElementById("campoCriterioCCH")?.value || "prioridade";
+    document.getElementById("campoCriterioCCH")?.value || "prioridade_distancia";
   const selectOrigem = document.getElementById("campoOrigemRota");
   const valorOrigem = selectOrigem?.value || "";
 
