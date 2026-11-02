@@ -203,14 +203,26 @@ export async function deletePonto(req, res) {
 
 export async function getPontosByArea(req, res) {
   try {
-    const minLng = Number(req.query.minLng ?? req.query.minLon);
-    const minLat = Number(req.query.minLat);
-    const maxLng = Number(req.query.maxLng ?? req.query.maxLon);
-    const maxLat = Number(req.query.maxLat);
+    const minLngRaw = Number(req.query.minLng ?? req.query.minLon);
+    const minLatRaw = Number(req.query.minLat);
+    const maxLngRaw = Number(req.query.maxLng ?? req.query.maxLon);
+    const maxLatRaw = Number(req.query.maxLat);
 
-    if ([minLng, minLat, maxLng, maxLat].some((val) => !Number.isFinite(val))) {
+    if ([minLngRaw, minLatRaw, maxLngRaw, maxLatRaw].some((val) => !Number.isFinite(val))) {
       res.status(400).json({
         mensagem: "Informe os limites da área visível: minLng, minLat, maxLng e maxLat",
+      });
+      return;
+    }
+
+    const minLng = Math.min(minLngRaw, maxLngRaw);
+    const maxLng = Math.max(minLngRaw, maxLngRaw);
+    const minLat = Math.min(minLatRaw, maxLatRaw);
+    const maxLat = Math.max(minLatRaw, maxLatRaw);
+
+    if (minLat < -90 || maxLat > 90 || minLng < -180 || maxLng > 180) {
+      res.status(400).json({
+        mensagem: "Limites geográficos fora do intervalo WGS84 (-90 a 90 para latitude e -180 a 180 para longitude)",
       });
       return;
     }

@@ -9,32 +9,38 @@ import {
 
 const OSRM_BASE_URL = process.env.OSRM_BASE_URL || "https://router.project-osrm.org";
 
+function ehCoordValida(lng, lat) {
+  return (
+    Number.isFinite(lng) &&
+    Number.isFinite(lat) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    lat >= -90 &&
+    lat <= 90
+  );
+}
+
 function extrairCoordenadas(pontoOuCoord) {
   if (!pontoOuCoord) return null;
+  let lng = null;
+  let lat = null;
   if (Array.isArray(pontoOuCoord) && pontoOuCoord.length >= 2) {
-    return [Number(pontoOuCoord[0]), Number(pontoOuCoord[1])];
-  }
-  if (
+    lng = Number(pontoOuCoord[0]);
+    lat = Number(pontoOuCoord[1]);
+  } else if (
     pontoOuCoord.localizacao &&
     Array.isArray(pontoOuCoord.localizacao.coordinates)
   ) {
-    return [
-      Number(pontoOuCoord.localizacao.coordinates[0]),
-      Number(pontoOuCoord.localizacao.coordinates[1]),
-    ];
+    lng = Number(pontoOuCoord.localizacao.coordinates[0]);
+    lat = Number(pontoOuCoord.localizacao.coordinates[1]);
+  } else if (Array.isArray(pontoOuCoord.coordinates)) {
+    lng = Number(pontoOuCoord.coordinates[0]);
+    lat = Number(pontoOuCoord.coordinates[1]);
+  } else {
+    lat = Number(pontoOuCoord.lat ?? pontoOuCoord.latitude);
+    lng = Number(pontoOuCoord.lng ?? pontoOuCoord.lon ?? pontoOuCoord.longitude);
   }
-  if (Array.isArray(pontoOuCoord.coordinates)) {
-    return [
-      Number(pontoOuCoord.coordinates[0]),
-      Number(pontoOuCoord.coordinates[1]),
-    ];
-  }
-  const lat = Number(pontoOuCoord.lat ?? pontoOuCoord.latitude);
-  const lng = Number(pontoOuCoord.lng ?? pontoOuCoord.lon ?? pontoOuCoord.longitude);
-  if (Number.isFinite(lat) && Number.isFinite(lng)) {
-    return [lng, lat];
-  }
-  return null;
+  return ehCoordValida(lng, lat) ? [lng, lat] : null;
 }
 
 async function consultarMatrizOSRM(nos, criterio) {
@@ -482,7 +488,11 @@ export async function getRotaById(req, res) {
 
 export async function deleteRota(req, res) {
   try {
-    const id = req.params.id || req.body.id;
+    const id = req.params.id;
+    if (!id) {
+      res.status(400).json({ mensagem: "ID da rota é obrigatório nos parâmetros da rota" });
+      return;
+    }
     const removidas = await Rota.destroy({
       where: { id },
     });
