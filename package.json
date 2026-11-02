@@ -1,0 +1,25 @@
+{
+  "name": "rotafast",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão Geográfica de Pontos de Atendimento e Otimização Inteligente de Rotas com PostGIS, CCH e OSRM",
+  "main": "back-end/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "npm install --prefix back-end",
+    "start": "node back-end/index.js",
+    "dev": "npm start --prefix back-end"
+  },
+  "keywords": [
+    "postgis",
+    "postgresql",
+    "sequelize",
+    "leaflet",
+    "cch",
+    "osrm",
+    "nominatim"
+  ],
+  "license": "MIT"
+}
