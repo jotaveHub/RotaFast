@@ -903,7 +903,15 @@ async function solicitarOtimizacaoRota() {
     if (typeof renderizarRotaOtimizadaNoMapa === "function") {
       renderizarRotaOtimizadaNoMapa(dados);
     }
-    mostrarToast("Rota otimizada com algoritmo CCH + PostGIS + OSRM!");
+    if (dados.modo_aproximado) {
+      mostrarToast(
+        dados.aviso ||
+          "Rota calculada por estimativa geodésica direta (serviço viário OSRM indisponível).",
+        5000
+      );
+    } else {
+      mostrarToast("Rota otimizada com algoritmo CCH + PostGIS + OSRM!");
+    }
   } catch {
     mostrarToast("Erro ao comunicar com o servidor de rotas.");
   } finally {

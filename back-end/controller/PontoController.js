@@ -2,6 +2,28 @@ import Ponto from "../model/Ponto.js";
 import sequelize from "../database/sequelize.js";
 import { Op } from "sequelize";
 
+const CAMPOS_EDITAVEIS = [
+  "nome",
+  "descricao",
+  "endereco",
+  "tipo",
+  "prioridade",
+  "status",
+];
+
+const MENSAGEM_COORDENADA_INVALIDA =
+  "Coordenadas geográficas inválidas: latitude deve estar entre -90 e 90 e longitude entre -180 e 180";
+
+function filtrarCamposEditaveis(dados = {}) {
+  const filtrado = {};
+  for (const campo of CAMPOS_EDITAVEIS) {
+    if (dados[campo] !== undefined) {
+      filtrado[campo] = dados[campo];
+    }
+  }
+  return filtrado;
+}
+
 function validarCoordenadas(lng, lat) {
   if (
     !Number.isFinite(lng) ||
@@ -11,13 +33,11 @@ function validarCoordenadas(lng, lat) {
     lng < -180 ||
     lng > 180
   ) {
-    throw new Error(
-      "Coordenadas geográficas inválidas: latitude deve estar entre -90 e 90 e longitude entre -180 e 180"
-    );
+    throw new Error(MENSAGEM_COORDENADA_INVALIDA);
   }
 }
 
-function normalizarLocalizacao(dados) {
+function normalizarLocalizacao(dados = {}) {
   if (
     dados.localizacao &&
     dados.localizacao.type === "Point" &&
@@ -42,7 +62,7 @@ function normalizarLocalizacao(dados) {
       crs: { type: "name", properties: { name: "EPSG:4326" } },
     };
   }
-  return dados.localizacao;
+  return null;
 }
 
 function extrairPaginacao(query = {}) {
@@ -83,11 +103,12 @@ export async function getPontos(req, res) {
 
 export async function createPonto(req, res) {
   try {
-    const payload = {
-      ...req.body,
-      localizacao: normalizarLocalizacao(req.body),
-    };
-    const ponto = await Ponto.create(payload);
+    const localizacao = normalizarLocalizacao(req.body);
+    if (!localizacao) {
+      res.status(400).json({ mensagem: MENSAGEM_COORDENADA_INVALIDA });
+      return;
+    }
+    const ponto = await Ponto.create({ ...filtrarCamposEditaveis(req.body), localizacao });
     res.status(201).json(ponto);
   } catch (error) {
     res.status(400).json({
@@ -115,11 +136,16 @@ export async function getPontoById(req, res) {
 
 export async function updatePonto(req, res) {
   try {
-    const id = req.params.id || req.body.id;
-    const dadosAtualizacao = { ...req.body };
+    const id = req.params.id;
+    const dadosAtualizacao = filtrarCamposEditaveis(req.body);
 
     if (req.body.localizacao || (req.body.latitude !== undefined && req.body.longitude !== undefined)) {
-      dadosAtualizacao.localizacao = normalizarLocalizacao(req.body);
+      const localizacao = normalizarLocalizacao(req.body);
+      if (!localizacao) {
+        res.status(400).json({ mensagem: MENSAGEM_COORDENADA_INVALIDA });
+        return;
+      }
+      dadosAtualizacao.localizacao = localizacao;
     }
 
     const [linhasAfetadas, pontosAtualizados] = await Ponto.update(dadosAtualizacao, {
@@ -148,7 +174,11 @@ export async function updatePonto(req, res) {
 
 export async function deletePonto(req, res) {
   try {
-    const id = req.params.id || req.body.id;
+    const id = req.params.id;
+    if (!id) {
+      res.status(400).json({ mensagem: "ID do ponto é obrigatório nos parâmetros da rota" });
+      return;
+    }
     const linhasRemovidas = await Ponto.destroy({
       where: { id },
     });
