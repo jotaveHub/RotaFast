@@ -1033,6 +1033,16 @@ body {
   color: #b91c1c;
 }
 
+.btn-popup-rota {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.btn-popup-rota.ativa {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 /* Toast de Notificação */
 .toast {
   position: fixed;

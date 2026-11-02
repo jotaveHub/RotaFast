@@ -283,6 +283,7 @@ document.addEventListener("click", (e) => {
 let pontosAtuais = [];
 let ultimaRotaCalculada = null;
 const idsSelecionadosRota = new Set();
+let primeiraCargaParadasRealizada = false;
 let debounceAreaTimer = null;
 let abortControllerPontos = null;
 
@@ -302,6 +303,15 @@ function renderizarPontosNoMapaELista(pontos) {
   pontosAtuais = Array.isArray(pontos) ? pontos : [];
   grupoPontos.clearLayers();
 
+  if (!primeiraCargaParadasRealizada && pontosAtuais.length > 0) {
+    pontosAtuais.forEach((p) => {
+      if (p.status !== "concluido") {
+        idsSelecionadosRota.add(p.id);
+      }
+    });
+    primeiraCargaParadasRealizada = true;
+  }
+
   const mapaOrdemRota = new Map();
   if (ultimaRotaCalculada && Array.isArray(ultimaRotaCalculada.paradas)) {
     ultimaRotaCalculada.paradas.forEach((parada) => {
@@ -320,10 +330,6 @@ function renderizarPontosNoMapaELista(pontos) {
   pontosAtuais.forEach((ponto, idx) => {
     const latlng = obterLatLngDoPonto(ponto);
     if (!latlng) return;
-
-    if (!idsSelecionadosRota.has(ponto.id) && ponto.status !== "concluido") {
-      idsSelecionadosRota.add(ponto.id);
-    }
 
     const ordemNaRota = mapaOrdemRota.get(String(ponto.id));
     const numeroExibicao = ordemNaRota !== undefined ? ordemNaRota : idx + 1;
@@ -378,6 +384,30 @@ function renderizarPontosNoMapaELista(pontos) {
       const actionsDiv = document.createElement("div");
       actionsDiv.className = "popup-actions";
 
+      const btnToggleRota = document.createElement("button");
+      btnToggleRota.type = "button";
+      const estaNaRota = idsSelecionadosRota.has(ponto.id);
+      btnToggleRota.className = estaNaRota
+        ? "btn-popup-rota ativa"
+        : "btn-popup-rota";
+      btnToggleRota.textContent = estaNaRota
+        ? "Remover da Rota"
+        : "Incluir na Rota";
+      btnToggleRota.addEventListener("click", () => {
+        if (idsSelecionadosRota.has(ponto.id)) {
+          idsSelecionadosRota.delete(ponto.id);
+        } else {
+          idsSelecionadosRota.add(ponto.id);
+        }
+        atualizarChecklistParadas();
+        m.closePopup();
+        mostrarToast(
+          idsSelecionadosRota.has(ponto.id)
+            ? `"${ponto.nome}" incluído nas paradas da rota.`
+            : `"${ponto.nome}" removido das paradas da rota.`
+        );
+      });
+
       const btnEditPopup = document.createElement("button");
       btnEditPopup.type = "button";
       btnEditPopup.className = "btn-popup-edit";
@@ -390,7 +420,7 @@ function renderizarPontosNoMapaELista(pontos) {
       btnDelPopup.textContent = "Excluir";
       btnDelPopup.addEventListener("click", () => window.removerPonto(ponto.id));
 
-      actionsDiv.append(btnEditPopup, btnDelPopup);
+      actionsDiv.append(btnToggleRota, btnEditPopup, btnDelPopup);
       popupCard.appendChild(actionsDiv);
 
       m.bindPopup(popupCard);
@@ -738,9 +768,28 @@ function atualizarChecklistParadas() {
 
   container.innerHTML = "";
 
+  const tituloEl = document.getElementById("tituloParadasSelecionadas");
+  const btnTodos = document.getElementById("btnSelecionarTodos");
+
   if (pontosAtuais.length === 0) {
     container.innerHTML = `<p style="font-size: 0.76rem; color: var(--text-muted);">Nenhum ponto carregado na área atual.</p>`;
+    if (tituloEl) tituloEl.textContent = "Paradas Selecionadas (0)";
+    if (btnTodos) btnTodos.textContent = "Marcar todos";
     return;
+  }
+
+  const paradasVisiveisSelecionadas = pontosAtuais.filter((p) =>
+    idsSelecionadosRota.has(p.id)
+  );
+  const todosMarcados =
+    paradasVisiveisSelecionadas.length === pontosAtuais.length &&
+    pontosAtuais.length > 0;
+
+  if (tituloEl) {
+    tituloEl.textContent = `Paradas Selecionadas (${paradasVisiveisSelecionadas.length}/${pontosAtuais.length})`;
+  }
+  if (btnTodos) {
+    btnTodos.textContent = todosMarcados ? "Desmarcar todos" : "Marcar todos";
   }
 
   pontosAtuais.forEach((ponto) => {
@@ -769,6 +818,18 @@ function atualizarChecklistParadas() {
       } else {
         idsSelecionadosRota.delete(ponto.id);
       }
+      const qtdAtual = pontosAtuais.filter((p) =>
+        idsSelecionadosRota.has(p.id)
+      ).length;
+      if (tituloEl) {
+        tituloEl.textContent = `Paradas Selecionadas (${qtdAtual}/${pontosAtuais.length})`;
+      }
+      if (btnTodos) {
+        btnTodos.textContent =
+          qtdAtual === pontosAtuais.length && pontosAtuais.length > 0
+            ? "Desmarcar todos"
+            : "Marcar todos";
+      }
     });
 
     container.appendChild(label);
@@ -784,7 +845,7 @@ document.getElementById("campoOrigemRota")?.addEventListener("change", (e) => {
 document.getElementById("btnSelecionarTodos")?.addEventListener("click", () => {
   const todosMarcados = pontosAtuais.every((p) => idsSelecionadosRota.has(p.id));
   if (todosMarcados) {
-    idsSelecionadosRota.clear();
+    pontosAtuais.forEach((p) => idsSelecionadosRota.delete(p.id));
   } else {
     pontosAtuais.forEach((p) => idsSelecionadosRota.add(p.id));
   }
@@ -805,10 +866,18 @@ async function solicitarOtimizacaoRota() {
     return;
   }
 
-  let pontosIds = Array.from(idsSelecionadosRota);
+  // Obtém estritamente os checkboxes marcados na tela
+  const checkboxesMarcados = document.querySelectorAll(
+    '#listaSelecaoParadas input[type="checkbox"]:checked'
+  );
+  let pontosIds = Array.from(checkboxesMarcados).map((chk) => chk.value);
+
+  // Sincroniza o estado interno com a seleção visual real
+  idsSelecionadosRota.clear();
+  pontosIds.forEach((id) => idsSelecionadosRota.add(id));
 
   if (pontosIds.length === 0) {
-    mostrarToast("Selecione ao menos 1 ponto de atendimento para calcular a rota.");
+    mostrarToast("Selecione ao menos 1 parada no checklist para calcular a rota.");
     return;
   }
 

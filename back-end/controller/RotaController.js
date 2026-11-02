@@ -224,14 +224,18 @@ export async function calcularMelhorRota(req, res) {
     } = req.body;
 
     let pontosBanco = [];
-    if (Array.isArray(pontosIds) && pontosIds.length > 0) {
-      const encontrados = await Ponto.findAll({
-        where: { id: { [Op.in]: pontosIds } },
-      });
-      const mapaPorId = new Map(encontrados.map((p) => [String(p.id), p]));
-      pontosBanco = pontosIds
-        .map((id) => mapaPorId.get(String(id)))
-        .filter(Boolean);
+    if (Array.isArray(pontosIds)) {
+      if (pontosIds.length > 0) {
+        const encontrados = await Ponto.findAll({
+          where: { id: { [Op.in]: pontosIds } },
+        });
+        const mapaPorId = new Map(encontrados.map((p) => [String(p.id), p]));
+        pontosBanco = pontosIds
+          .map((id) => mapaPorId.get(String(id)))
+          .filter(Boolean);
+      } else {
+        pontosBanco = [];
+      }
     } else {
       pontosBanco = await Ponto.findAll({
         where: { status: { [Op.ne]: "concluido" } },
@@ -244,6 +248,14 @@ export async function calcularMelhorRota(req, res) {
       res.status(400).json({
         mensagem:
           "Informe uma origem e ao menos 1 ponto de atendimento (ou selecione ao menos 2 pontos)",
+      });
+      return;
+    }
+
+    if (coordOrigem && pontosBanco.length === 0) {
+      res.status(400).json({
+        mensagem:
+          "Selecione ao menos 1 ponto de atendimento para calcular a rota.",
       });
       return;
     }
