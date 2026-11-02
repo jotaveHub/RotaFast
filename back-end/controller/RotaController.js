@@ -99,11 +99,13 @@ async function consultarTrajetoViarioOSRM(coordenadasOrdenadas) {
           trechos,
           distancia_metros: Math.round(rota.distance || 0),
           duracao_segundos: Math.round(rota.duration || 0),
+          fonte_calculo: "osrm_viario",
+          modo_aproximado: false,
         };
       }
     }
   } catch {
-    // Fallback geodésico caso o serviço OSRM esteja indisponível
+    // Fallback geodésico transparente caso o serviço OSRM esteja indisponível
   }
 
   const trechosFallback = [];
@@ -136,6 +138,9 @@ async function consultarTrajetoViarioOSRM(coordenadasOrdenadas) {
     trechos: trechosFallback,
     distancia_metros: Math.round(distanciaTotal),
     duracao_segundos: Math.round(duracaoTotal),
+    fonte_calculo: "geodesica_haversine",
+    modo_aproximado: true,
+    aviso: "Serviço viário OSRM indisponível no momento. Trajeto e métricas calculados por aproximação geodésica.",
   };
 }
 
@@ -333,6 +338,9 @@ export async function calcularMelhorRota(req, res) {
         0,
         trajetoOriginal.distancia_metros - trajetoOtimizado.distancia_metros
       ),
+      fonte_calculo: trajetoOtimizado.fonte_calculo,
+      modo_aproximado: trajetoOtimizado.modo_aproximado,
+      aviso: trajetoOtimizado.aviso || null,
       paradas: paradasOrdenadas,
       trechos: trajetoOtimizado.trechos,
       trajeto: trajetoOtimizado.geometria,
