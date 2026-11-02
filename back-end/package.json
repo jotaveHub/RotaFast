@@ -6,13 +6,15 @@
   "type": "module",
   "scripts": {
     "start": "node --watch index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/cch.test.js",
+    "test:all": "node --test tests/*.test.js"
   },
   "keywords": [
     "postgis",
     "sequelize",
     "express",
-    "rotas"
+    "rotas",
+    "cch"
   ],
   "author": "",
   "license": "MIT",
